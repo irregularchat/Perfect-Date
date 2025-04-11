@@ -6,6 +6,16 @@
   --accent-color: #ffe66d;
   --dark-color: #292f36;
   --light-color: #f7fff7;
+  --text-color: #222222;  /* Darker text color for better contrast */
+  --input-bg-color: #ffffff;
+  --input-border-color: #bbbbbb;  /* Darker border for better visibility */
+  --label-color: #000000;  /* Black labels for maximum contrast */
+  --placeholder-color: #888888;  /* Darker placeholder text */
+}
+
+body, .gradio-container {
+  font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  color: var(--text-color);
 }
 
 .gradio-container {
@@ -34,13 +44,63 @@ h1 {
   margin-top: 2rem;
   font-size: 0.9rem;
   color: var(--dark-color);
+  padding: 10px;
+  font-weight: 500;
 }
 
+/* Input field styling */
+.gradio-textbox textarea, .gradio-textbox input, .gradio-dropdown div[data-testid="dropdown"] {
+  background-color: var(--input-bg-color) !important;
+  border: 1px solid var(--input-border-color) !important;
+  color: var(--text-color) !important;
+  font-size: 1rem !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;  /* Add subtle shadow for depth */
+}
+
+.gradio-textbox textarea::placeholder, .gradio-textbox input::placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: 0.7 !important;  /* More transparent placeholders */
+}
+
+/* Label styling for better contrast */
+.gradio-textbox label, .gradio-dropdown label, .gradio-slider label {
+  color: var(--label-color) !important;
+  font-weight: 700 !important;  /* Bolder labels */
+  font-size: 1.05rem !important;
+  margin-bottom: 6px !important;
+  display: block !important;
+}
+
+/* Output container improvements */
 .output-container {
   border-radius: 8px;
   border: 1px solid #ddd;
   padding: 20px;
   background-color: var(--light-color);
+  color: var(--text-color) !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+}
+
+.output-container h2 {
+  color: var(--primary-color);
+  margin-top: 1.5rem;
+  border-bottom: 2px solid var(--accent-color);
+  padding-bottom: 0.5rem;
+  font-size: 1.4rem !important;
+}
+
+.output-container h3 {
+  color: var(--secondary-color);
+  margin-top: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600 !important;
+}
+
+.output-container p {
+  margin-bottom: 1rem !important;
+  color: var(--text-color) !important;
 }
 
 /* Animation for the generate button */
@@ -59,7 +119,76 @@ h1 {
   .gr-form {
     grid-template-columns: 1fr !important;
   }
-} 
+  
+  h1 {
+    font-size: 1.8rem !important;
+    margin-bottom: 0.8rem !important;
+    color: var(--primary-color) !important;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.1) !important;  /* Add subtle text shadow */
+  }
+  
+  .gradio-container {
+    padding: 10px !important;
+  }
+  
+  /* Improve form element spacing on mobile */
+  .gradio-slider, .gradio-dropdown, .gradio-textbox {
+    margin-bottom: 20px !important;  /* More spacing between elements */
+    background-color: rgba(255,255,255,0.7) !important;  /* Slight background for form elements */
+    padding: 10px !important;
+    border-radius: 6px !important;
+  }
+  
+  /* Make buttons larger and easier to tap on mobile */
+  .generate-btn {
+    padding: 14px 18px !important;
+    font-size: 1.2rem !important;
+    min-height: 54px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;  /* Add shadow for depth */
+  }
+  
+  /* Adjust section headers for mobile */
+  .gradio-markdown h3 {
+    font-size: 1.2rem !important;
+    margin-top: 1.4rem !important;
+    margin-bottom: 0.8rem !important;
+    color: var(--secondary-color) !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid var(--accent-color) !important;
+    padding-bottom: 0.5rem !important;
+  }
+  
+  /* Improve input field readability on mobile */
+  .gradio-textbox textarea, .gradio-textbox input, .gradio-dropdown div[data-testid="dropdown"] {
+    font-size: 1.1rem !important;  /* Larger font on mobile */
+    padding: 12px !important;  /* More padding for easier interaction */
+  }
+  
+  /* Improve slider visibility on mobile */
+  .gradio-slider .handle {
+    width: 24px !important;
+    height: 24px !important;  /* Larger handle for easier touch */
+  }
+  
+  .gradio-slider .track {
+    height: 10px !important;  /* Thicker track */
+  }
+  
+  /* Improve dropdown visibility on mobile */
+  .gradio-dropdown .selected {
+    padding: 12px !important;
+    font-size: 1.1rem !important;
+  }
+  
+  .footer {
+    font-size: 0.9rem;
+    margin-top: 2rem;
+    padding: 15px;
+    font-weight: 600;
+    color: var(--dark-color);
+  }
+}
 
 /* Styling for date idea timeline and cost breakdown */
 .output-container h2 {
@@ -144,12 +273,29 @@ h1 {
   background-color: #f2f2f2;
 }
 
+/* Slider improvements */
+.gradio-slider .handle {
+  background-color: var(--primary-color) !important;
+  border: 2px solid white !important;
+  box-shadow: 0 0 5px rgba(0,0,0,0.2) !important;
+}
+
+.gradio-slider .track {
+  height: 8px !important;
+  background-color: #e0e0e0 !important;
+}
+
+.gradio-slider .track-fill {
+  background-color: var(--secondary-color) !important;
+}
+
 /* Make slider labels and values more prominent */
 .gradio-slider label {
   font-size: 1.1rem !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;  /* Bolder labels */
   margin-bottom: 0.5rem !important;
   display: block !important;
+  color: var(--label-color) !important;
 }
 
 .gradio-slider .wrap {
@@ -159,8 +305,31 @@ h1 {
 
 .gradio-slider .slider-value {
   font-size: 1.1rem !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;  /* Bolder value */
   color: var(--primary-color) !important;
+  background-color: rgba(255,255,255,0.8) !important;  /* Slight background for contrast */
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+/* Dropdown improvements */
+.gradio-dropdown .options {
+  background-color: var(--input-bg-color) !important;
+  border: 1px solid var(--input-border-color) !important;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+}
+
+.gradio-dropdown .selected {
+  background-color: var(--accent-color) !important;
+  color: var(--dark-color) !important;
+  font-weight: 600 !important;
+}
+
+.gradio-dropdown div[data-testid="dropdown"] {
+  background-color: var(--input-bg-color) !important;
+  border: 1px solid var(--input-border-color) !important;
+  color: var(--text-color) !important;
+  font-weight: 500 !important;
 }
 
 /* Section headers */
@@ -171,4 +340,195 @@ h1 {
   margin-bottom: 0.8rem !important;
   border-bottom: 1px solid var(--accent-color);
   padding-bottom: 0.3rem;
+}
+
+/* Focus states for better accessibility */
+.gradio-textbox textarea:focus, .gradio-textbox input:focus {
+  border-color: var(--secondary-color) !important;
+  box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.3) !important;
+  outline: none !important;
+}
+
+.gr-button:focus {
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.4) !important;
+  outline: none !important;
+}
+
+/* Mobile-specific font improvements */
+@media (max-width: 768px) {
+  body, .gradio-container {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+  }
+  
+  /* Improve text readability */
+  p, li, span {
+    font-size: 1rem !important;
+    line-height: 1.6 !important;
+    color: var(--text-color) !important;
+  }
+  
+  /* Ensure output text is clearly visible */
+  .output-container p, .timeline-container p {
+    font-size: 1.05rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 1rem !important;
+    color: var(--text-color) !important;
+  }
+  
+  /* Make output headers stand out */
+  .output-container h2, .timeline-container h2 {
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    color: var(--primary-color) !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .output-container h3, .timeline-container h3 {
+    font-size: 1.2rem !important;
+    font-weight: 600 !important;
+    color: var(--secondary-color) !important;
+    margin-top: 1.2rem !important;
+    margin-bottom: 0.8rem !important;
+  }
+  
+  /* Mobile-friendly form elements */
+  .mobile-friendly-input, .mobile-friendly-slider, .mobile-friendly-dropdown {
+    margin-bottom: 16px !important;
+  }
+  
+  .mobile-friendly-input, .mobile-friendly-slider, .mobile-friendly-dropdown {
+    background-color: #ffffff !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    padding: 12px !important;
+    margin-bottom: 20px !important;
+  }
+  
+  .mobile-friendly-input label, .mobile-friendly-slider label, .mobile-friendly-dropdown label {
+    color: var(--dark-color) !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+    margin-bottom: 8px !important;
+    display: block !important;
+  }
+  
+  .mobile-friendly-input textarea, .mobile-friendly-input input {
+    background-color: #f8f8f8 !important;  /* Light gray background for better contrast */
+    border: 1px solid var(--input-border-color) !important;
+    border-radius: 6px !important;
+    padding: 12px !important;
+    font-size: 1.1rem !important;
+    color: #000000 !important;  /* Black text for maximum contrast */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1) !important;
+  }
+  
+  .mobile-friendly-input textarea::placeholder, .mobile-friendly-input input::placeholder {
+    color: #777777 !important;  /* Darker placeholder text */
+    opacity: 0.8 !important;
+  }
+  
+  .mobile-friendly-dropdown div[data-testid="dropdown"] {
+    background-color: #f8f8f8 !important;
+    border: 1px solid var(--input-border-color) !important;
+    border-radius: 6px !important;
+    padding: 12px !important;
+    font-size: 1.1rem !important;
+    color: #000000 !important;
+  }
+  
+  .mobile-friendly-slider .wrap {
+    padding: 8px 0 !important;
+  }
+  
+  .mobile-friendly-slider .slider-value {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: var(--primary-color) !important;
+    background-color: rgba(255,255,255,0.9) !important;
+    padding: 3px 8px !important;
+    border-radius: 4px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+  }
+  
+  /* Make section headers more prominent on mobile */
+  .gradio-markdown h3 {
+    color: var(--dark-color) !important;
+    font-size: 1.3rem !important;
+    font-weight: 700 !important;
+    margin-top: 1.8rem !important;
+    margin-bottom: 1rem !important;
+    padding: 8px 0 !important;
+    border-bottom: 2px solid var(--primary-color) !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.8) !important;
+  }
+  
+  /* Improve "How to use" section readability */
+  .gradio-markdown ol li, .gradio-markdown ul li {
+    margin-bottom: 10px !important;
+    color: var(--text-color) !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+  }
+  
+  /* Make generate button more prominent */
+  .generate-btn {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 1.2rem !important;
+    padding: 14px 20px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2) !important;
+    margin-top: 10px !important;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2) !important;
+    border: none !important;
+  }
+  
+  .generate-btn:active {
+    transform: translateY(2px) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+  }
+  
+  /* Enhance output container for better mobile readability */
+  .output-container, .timeline-container {
+    background-color: #ffffff !important;
+    border: 1px solid #dddddd !important;
+    border-radius: 8px !important;
+    padding: 16px !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+    margin-top: 20px !important;
+  }
+  
+  .output-container p, .timeline-container p {
+    color: #222222 !important;
+    font-size: 1.05rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .output-container h2, .timeline-container h2 {
+    color: var(--primary-color) !important;
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    margin-top: 20px !important;
+    margin-bottom: 12px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 2px solid var(--accent-color) !important;
+  }
+  
+  .output-container h3, .timeline-container h3 {
+    color: var(--secondary-color) !important;
+    font-size: 1.2rem !important;
+    font-weight: 600 !important;
+    margin-top: 16px !important;
+    margin-bottom: 10px !important;
+  }
+  
+  .output-container ul li, .timeline-container ul li {
+    margin-bottom: 8px !important;
+    color: #222222 !important;
+  }
 }

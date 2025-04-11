@@ -12,7 +12,16 @@ with open(css_path, "r") as f:
     custom_css = f.read()
 
 # Define Gradio interface
-with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custom_css) as app:
+with gr.Blocks(
+    title="Perfect Date Generator", 
+    theme=gr.themes.Soft(
+        primary_hue="pink",
+        secondary_hue="teal",
+        neutral_hue="gray",
+        text_size="lg"
+    ), 
+    css=custom_css
+) as app:
     gr.Markdown("# 💕 Perfect Date Generator")
     gr.Markdown("Enter your preferences and get personalized date ideas!")
     
@@ -27,7 +36,8 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
                 maximum=12,
                 value=4,
                 step=1,
-                info="Slide to select how many hours you have available"
+                info="Slide to select how many hours you have available",
+                elem_classes="mobile-friendly-slider"
             )
             
             budget = gr.Slider(
@@ -36,7 +46,8 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
                 maximum=500,
                 value=50,
                 step=10,
-                info="Slide to select your budget in dollars"
+                info="Slide to select your budget in dollars",
+                elem_classes="mobile-friendly-slider"
             )
             
             physical_activity = gr.Slider(
@@ -45,21 +56,24 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
                 maximum=10,
                 value=5,
                 step=1,
-                info="1 = Very low, 10 = Very high"
+                info="1 = Very low, 10 = Very high",
+                elem_classes="mobile-friendly-slider"
             )
             
             vibe = gr.Dropdown(
                 label="Vibe",
                 choices=["Chill", "Adventurous", "Romantic", "Nerdy", "Outdoorsy"],
                 multiselect=True,
-                value=["Romantic"]
+                value=["Romantic"],
+                elem_classes="mobile-friendly-dropdown"
             )
             
             location_type = gr.Dropdown(
                 label="Location Type",
                 choices=["Restaurant", "Activity", "Nature", "At-home"],
                 multiselect=True,
-                value=["Restaurant", "Activity"]
+                value=["Restaurant", "Activity"],
+                elem_classes="mobile-friendly-dropdown"
             )
         
         # Second column - Partner preferences
@@ -68,25 +82,29 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
             partner_likes = gr.Textbox(
                 label="What does your partner like?",
                 placeholder="E.g., Art, music, specific cuisines, sports...",
-                lines=2
+                lines=2,
+                elem_classes="mobile-friendly-input"
             )
             
             partner_dislikes = gr.Textbox(
                 label="What does your partner dislike?",
                 placeholder="E.g., Crowds, certain foods, activities they avoid...",
-                lines=2
+                lines=2,
+                elem_classes="mobile-friendly-input"
             )
             
             partner_hobbies = gr.Textbox(
                 label="What are your partner's hobbies?",
                 placeholder="E.g., Photography, hiking, cooking, gaming...",
-                lines=2
+                lines=2,
+                elem_classes="mobile-friendly-input"
             )
             
             partner_personality = gr.Textbox(
                 label="Describe your partner's personality",
                 placeholder="E.g., Introverted, adventurous, detail-oriented...",
-                lines=2
+                lines=2,
+                elem_classes="mobile-friendly-input"
             )
         
         # Third column - Your preferences and misc
@@ -95,13 +113,15 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
             self_preferences = gr.Textbox(
                 label="What do you enjoy?",
                 placeholder="E.g., Your interests, activities you'd like to try...",
-                lines=2
+                lines=2,
+                elem_classes="mobile-friendly-input"
             )
             
             misc_input = gr.Textbox(
                 label="Anything else to consider?",
                 placeholder="E.g., Special occasions, specific requirements, constraints...",
-                lines=2
+                lines=2,
+                elem_classes="mobile-friendly-input"
             )
             
             # Add some spacing
