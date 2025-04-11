@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -18,8 +18,13 @@ def generate_date_ideas(
     vibe: list,
     location_type: list,
     physical_activity: float,
-    partner_questions: str
-) -> str:
+    partner_likes: str,
+    partner_dislikes: str,
+    partner_hobbies: str,
+    partner_personality: str,
+    self_preferences: str,
+    misc_input: str
+) -> tuple:
     """
     Generate personalized date ideas based on user preferences.
 
@@ -29,10 +34,15 @@ def generate_date_ideas(
         vibe (list): List of vibes for the date
         location_type (list): List of location types for the date
         physical_activity (float): Level of physical activity (1-10 scale)
-        partner_questions (str): Partner's preferences
+        partner_likes (str): Things the partner likes
+        partner_dislikes (str): Things the partner dislikes
+        partner_hobbies (str): Partner's hobbies
+        partner_personality (str): Partner's personality traits
+        self_preferences (str): User's own preferences
+        misc_input (str): Miscellaneous information to consider
 
     Returns:
-        str: Formatted text containing the date ideas with timeline and cost breakdown
+        tuple: (main_content, timeline_content) - Formatted text containing the date ideas and separate timeline content
     """
     try:
         # Construct the prompt for OpenAI
@@ -44,7 +54,16 @@ def generate_date_ideas(
         Vibe: {', '.join(vibe)}
         Location Type: {', '.join(location_type)}
         Physical Activity Level: {physical_activity}/10
-        Partner Preferences: {partner_questions}
+        
+        Partner Preferences:
+        - Likes: {partner_likes if partner_likes else "Not specified"}
+        - Dislikes: {partner_dislikes if partner_dislikes else "Not specified"}
+        - Hobbies: {partner_hobbies if partner_hobbies else "Not specified"}
+        - Personality: {partner_personality if partner_personality else "Not specified"}
+        
+        Your Preferences: {self_preferences if self_preferences else "Not specified"}
+        
+        Additional Information: {misc_input if misc_input else "None"}
         
         For each date idea, provide:
         1. A descriptive title
@@ -70,6 +89,8 @@ def generate_date_ideas(
         [Description of the atmosphere and experience]
         
         [Additional details and suggestions to make the date special]
+        
+        IMPORTANT: Make sure to clearly mark the timeline section with the exact heading "### Timeline:" for each date idea.
         """
         
         # Call OpenAI API
@@ -101,6 +122,37 @@ def generate_date_ideas(
         )
         
         # Extract and return the response
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        
+        # Extract timeline sections
+        import re
+        timeline_sections = []
+        
+        # Find all timeline sections
+        timeline_pattern = r'### Timeline:(.*?)(?=###|$)'
+        timeline_matches = re.findall(timeline_pattern, content, re.DOTALL)
+        
+        if timeline_matches:
+            timeline_content = "## Timelines for Date Packages\n\n"
+            
+            # Extract date idea titles
+            title_pattern = r'## Date Idea: (.*?)[\r\n]'
+            titles = re.findall(title_pattern, content)
+            
+            # Combine titles with their respective timelines
+            for i, timeline in enumerate(timeline_matches):
+                if i < len(titles):
+                    timeline_content += f"### Timeline for {titles[i]}\n{timeline.strip()}\n\n"
+                else:
+                    timeline_content += f"### Timeline for Date Idea {i+1}\n{timeline.strip()}\n\n"
+            
+            # Remove timeline sections from main content to avoid duplication
+            main_content = re.sub(timeline_pattern, '', content)
+            
+            return main_content, timeline_content
+        
+        # If no timeline sections found, return original content
+        return content, ""
     except Exception as e:
-        return f"Error generating date ideas: {str(e)}" 
+        error_message = f"Error generating date ideas: {str(e)}"
+        return error_message, ""

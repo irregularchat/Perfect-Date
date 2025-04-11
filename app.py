@@ -16,9 +16,11 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
     gr.Markdown("# 💕 Perfect Date Generator")
     gr.Markdown("Enter your preferences and get personalized date ideas!")
     
+    # Main input section with 3 columns
     with gr.Row():
-        with gr.Column():
-            # Input components
+        # First column - Basic preferences
+        with gr.Column(scale=1):
+            gr.Markdown("### Basic Preferences")
             time_available = gr.Slider(
                 label="Time Available (hours)",
                 minimum=1,
@@ -31,10 +33,19 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
             budget = gr.Slider(
                 label="Budget ($)",
                 minimum=20,
-                maximum=200,
+                maximum=500,
                 value=50,
                 step=10,
                 info="Slide to select your budget in dollars"
+            )
+            
+            physical_activity = gr.Slider(
+                label="Level of Physical Activity",
+                minimum=1,
+                maximum=10,
+                value=5,
+                step=1,
+                info="1 = Very low, 10 = Very high"
             )
             
             vibe = gr.Dropdown(
@@ -50,44 +61,95 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
                 multiselect=True,
                 value=["Restaurant", "Activity"]
             )
-
-            physical_activity = gr.Slider(
-                label="Level of Physical Activity",
-                minimum=1,
-                maximum=10,
-                value=5,
-                step=1,
-                info="1 = Very low, 10 = Very high"
-            )
-            
-            partner_questions = gr.Textbox(
-                label="What does your partner enjoy? (Interests, activities they've mentioned, etc.)",
-                placeholder="E.g., They love art, trying new foods, and being outdoors",
-                lines=3
-            )
-            
-            generate_button = gr.Button("Generate Date Ideas", variant="primary", elem_classes="generate-btn")
         
-        with gr.Column():
-            # Output component with custom class
-            output = gr.Markdown(label="Your Perfect Date Ideas", elem_classes="output-container")
+        # Second column - Partner preferences
+        with gr.Column(scale=1):
+            gr.Markdown("### Partner Preferences (Optional)")
+            partner_likes = gr.Textbox(
+                label="What does your partner like?",
+                placeholder="E.g., Art, music, specific cuisines, sports...",
+                lines=2
+            )
+            
+            partner_dislikes = gr.Textbox(
+                label="What does your partner dislike?",
+                placeholder="E.g., Crowds, certain foods, activities they avoid...",
+                lines=2
+            )
+            
+            partner_hobbies = gr.Textbox(
+                label="What are your partner's hobbies?",
+                placeholder="E.g., Photography, hiking, cooking, gaming...",
+                lines=2
+            )
+            
+            partner_personality = gr.Textbox(
+                label="Describe your partner's personality",
+                placeholder="E.g., Introverted, adventurous, detail-oriented...",
+                lines=2
+            )
+        
+        # Third column - Your preferences and misc
+        with gr.Column(scale=1):
+            gr.Markdown("### Your Preferences (Optional)")
+            self_preferences = gr.Textbox(
+                label="What do you enjoy?",
+                placeholder="E.g., Your interests, activities you'd like to try...",
+                lines=2
+            )
+            
+            misc_input = gr.Textbox(
+                label="Anything else to consider?",
+                placeholder="E.g., Special occasions, specific requirements, constraints...",
+                lines=2
+            )
+            
+            # Add some spacing
+            gr.Markdown("<br>")
+            gr.Markdown("<br>")
+            
+            # Generate button at the bottom of the third column
+            generate_button = gr.Button("Generate Date Ideas", variant="primary", elem_classes="generate-btn", size="lg")
+    
+    # Output section
+    with gr.Row():
+        output = gr.Markdown(label="Your Perfect Date Ideas", elem_classes="output-container")
+    
+    # Timeline section (separate from the main output)
+    with gr.Row(elem_classes="timeline-section"):
+        gr.Markdown("### Timeline of Events")
+        timeline_output = gr.Markdown(elem_classes="timeline-container")
     
     # Set up the click event
     generate_button.click(
         fn=generate_date_ideas,
-        inputs=[time_available, budget, vibe, location_type, physical_activity, partner_questions],
-        outputs=output
+        inputs=[
+            time_available, 
+            budget, 
+            vibe, 
+            location_type, 
+            physical_activity, 
+            partner_likes,
+            partner_dislikes,
+            partner_hobbies,
+            partner_personality,
+            self_preferences,
+            misc_input
+        ],
+        outputs=[output, timeline_output]
     )
     
     gr.Markdown("### How to use")
     gr.Markdown("""
     1. Adjust the slider for your available time (in hours)
-    2. Set your budget using the slider
+    2. Set your budget using the slider (up to $500)
     3. Pick the vibe(s) you're looking for
     4. Select preferred location type(s)
     5. Set your preferred level of physical activity (1-10)
-    6. Add information about your partner's preferences
-    7. Click 'Generate Date Ideas' to get personalized recommendations with timeline and cost breakdown
+    6. Fill in the optional partner preference fields
+    7. Add your own preferences (optional)
+    8. Include any miscellaneous information if needed
+    9. Click 'Generate Date Ideas' to get personalized recommendations with timeline and cost breakdown
     """)
     
     # Add footer
