@@ -48,6 +48,7 @@ A web application that generates personalized date ideas based on time available
    ```
    git clone [repository-url]
    cd perfect-date-generator
+   docker compose up --build -d
    ```
 
 2. Use the provided start script:
@@ -68,10 +69,10 @@ A web application that generates personalized date ideas based on time available
 
 ## Docker Commands
 
-- Start the application: `docker-compose up -d`
-- Stop the application: `docker-compose down`
-- View logs: `docker-compose logs -f`
-- Rebuild and restart: `docker-compose up --build -d`
+- Start the application: `docker compose up -d`
+- Stop the application: `docker compose down`
+- View logs: `docker compose logs -f`
+- Rebuild and restart: `docker compose up --build -d`
 
 ## Technologies Used
 
