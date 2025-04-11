@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  date-generator:
+    build: .
+    ports:
+      - "${PORT:-7860}:7860"
+    volumes:
+      - .:/app
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    restart: unless-stopped 
