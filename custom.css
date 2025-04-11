@@ -1,7 +1,7 @@
 /* Custom styling for Perfect Date Generator */
 
 :root {
-  --primary-color: #ff6b6b;
+  --primary-color: #DC143C;
   --secondary-color: #4ecdc4;
   --accent-color: #ffe66d;
   --dark-color: #292f36;
@@ -11,6 +11,10 @@
 .gradio-container {
   max-width: 1200px !important;
   margin: 0 auto;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23) !important;
+  border-radius: 12px !important;
+  transform: perspective(1000px) rotateX(1deg) !important;
+  background: linear-gradient(to bottom, #ffffff, #f5f5f5) !important;
 }
 
 /* Logo styling */
@@ -22,12 +26,93 @@
   background: none !important;
   border: none !important;
   box-shadow: none !important;
+  position: relative !important;
+  perspective: 1000px !important;
+  transform-style: preserve-3d !important;
 }
 
 .logo-container img {
   max-width: 200px;
   max-height: 150px;
   object-fit: contain;
+  transform: translateZ(20px) !important;
+  transition: transform 0.3s ease !important;
+  filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2)) !important;
+}
+
+.logo-container:hover img {
+  transform: translateZ(30px) scale(1.05) !important;
+}
+
+/* Stick figures kissing behind heart */
+.logo-container::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 150px;
+  z-index: -1;
+  background: 
+    /* Heart */
+    radial-gradient(circle at 75px 75px, var(--primary-color) 30px, transparent 30px),
+    radial-gradient(circle at 75px 75px, var(--primary-color) 30px, transparent 30px),
+    /* Stick figure 1 - head */
+    radial-gradient(circle at 45px 60px, #000 8px, transparent 8px),
+    /* Stick figure 1 - body */
+    linear-gradient(to bottom, #000 2px, transparent 2px),
+    /* Stick figure 1 - arms */
+    linear-gradient(45deg, transparent 15px, #000 15px, #000 17px, transparent 17px),
+    linear-gradient(-45deg, transparent 15px, #000 15px, #000 17px, transparent 17px),
+    /* Stick figure 1 - legs */
+    linear-gradient(45deg, transparent 30px, #000 30px, #000 32px, transparent 32px),
+    linear-gradient(-45deg, transparent 30px, #000 30px, #000 32px, transparent 32px),
+    /* Stick figure 2 - head */
+    radial-gradient(circle at 105px 60px, #000 8px, transparent 8px),
+    /* Stick figure 2 - body */
+    linear-gradient(to bottom, #000 2px, transparent 2px),
+    /* Stick figure 2 - arms */
+    linear-gradient(135deg, transparent 15px, #000 15px, #000 17px, transparent 17px),
+    linear-gradient(-135deg, transparent 15px, #000 15px, #000 17px, transparent 17px),
+    /* Stick figure 2 - legs */
+    linear-gradient(135deg, transparent 30px, #000 30px, #000 32px, transparent 32px),
+    linear-gradient(-135deg, transparent 30px, #000 30px, #000 32px, transparent 32px);
+  background-position:
+    /* Heart positions */
+    60px 60px, 90px 60px,
+    /* Stick figure 1 positions */
+    0 0, 45px 68px, 45px 80px, 45px 80px, 45px 100px, 45px 100px,
+    /* Stick figure 2 positions */
+    0 0, 105px 68px, 105px 80px, 105px 80px, 105px 100px, 105px 100px;
+  background-repeat: no-repeat;
+  background-size: 
+    /* Heart size */
+    auto, auto,
+    /* Stick figures sizes */
+    auto, 2px 40px, auto, auto, auto, auto,
+    auto, 2px 40px, auto, auto, auto, auto;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* Add 3D effect to the heart */
+.logo-container::after {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateZ(5px);
+  width: 150px;
+  height: 150px;
+  z-index: -2;
+  filter: blur(10px);
+  background: 
+    radial-gradient(circle at 75px 75px, rgba(220,20,60,0.5) 30px, transparent 30px),
+    radial-gradient(circle at 75px 75px, rgba(220,20,60,0.5) 30px, transparent 30px);
+  background-position: 60px 60px, 90px 60px;
+  background-repeat: no-repeat;
+  pointer-events: none;
 }
 
 h1 {
@@ -35,15 +120,27 @@ h1 {
   font-size: 2.5rem !important;
   margin-bottom: 1rem !important;
   text-align: center;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2) !important;
+  transform: translateZ(10px) !important;
 }
 
 .gr-button-primary {
   background-color: var(--primary-color) !important;
   border: none !important;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.1) !important;
+  transform: translateZ(0);
+  transition: transform 0.2s, box-shadow 0.2s !important;
 }
 
 .gr-button-primary:hover {
-  background-color: #ff5252 !important;
+  background-color: #B01030 !important;
+  transform: translateY(-2px) translateZ(5px) !important;
+  box-shadow: 0 7px 10px rgba(0,0,0,0.15), 0 3px 6px rgba(0,0,0,0.1) !important;
+}
+
+.gr-button-primary:active {
+  transform: translateY(1px) translateZ(0) !important;
+  box-shadow: 0 2px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.1) !important;
 }
 
 .footer {
@@ -51,6 +148,8 @@ h1 {
   margin-top: 2rem;
   font-size: 0.9rem;
   color: var(--dark-color);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1) !important;
+  animation: float 4s ease-in-out infinite !important;
 }
 
 .output-container {
@@ -58,17 +157,31 @@ h1 {
   border: 1px solid #ddd;
   padding: 20px;
   background-color: var(--light-color);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
+  transform: translateZ(0);
+  transition: transform 0.3s, box-shadow 0.3s !important;
 }
 
-/* Animation for the generate button */
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+.output-container:hover {
+  transform: translateY(-5px) translateZ(5px) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
+}
+
+/* Enhanced 3D animations */
+@keyframes float {
+  0% { transform: translateZ(0) translateY(0); }
+  50% { transform: translateZ(10px) translateY(-5px); }
+  100% { transform: translateZ(0) translateY(0); }
+}
+
+@keyframes pulse3d {
+  0% { transform: scale(1) translateZ(0); }
+  50% { transform: scale(1.05) translateZ(10px); }
+  100% { transform: scale(1) translateZ(0); }
 }
 
 .generate-btn {
-  animation: pulse 2s infinite;
+  animation: pulse3d 2s infinite !important;
 }
 
 /* Responsive adjustments */
