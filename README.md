@@ -8,10 +8,11 @@ A web application that generates personalized date ideas based on time available
 - Choose budget ($20, $50, $100+)
 - Pick vibes (chill, adventurous, romantic, nerdy, outdoorsy)
 - Select location types (restaurant, activity, nature, at-home)
+- Choose level of physical activity (low, moderate, high)
 - Provide partner preferences
 - Generate top 3 date ideas with cost, time, and why they're a good fit
 
-## Installation
+## Standard Installation
 
 1. Clone this repository:
    ```
@@ -34,18 +35,43 @@ A web application that generates personalized date ideas based on time available
    OPENAI_API_KEY=your_openai_api_key_here
    ```
 
-## Usage
-
-1. Run the application:
+5. Run the application:
    ```
    python app.py
    ```
 
-2. Open the URL displayed in the terminal (usually http://127.0.0.1:7860).
+6. Open the URL displayed in the terminal (usually http://127.0.0.1:7860).
 
-3. Enter your preferences and click "Generate Date Ideas".
+## Docker Installation
 
-4. Enjoy your perfect date ideas!
+1. Clone this repository:
+   ```
+   git clone [repository-url]
+   cd perfect-date-generator
+   ```
+
+2. Use the provided start script:
+   ```
+   ./start.sh
+   ```
+   This will:
+   - Create a `.env` file if it doesn't exist
+   - Build and start the Docker container
+   - Display the URL to access the application
+
+3. Edit the `.env` file to add your OpenAI API key:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+
+4. Access the application at http://localhost:7860 (or the port you specified in `.env`)
+
+## Docker Commands
+
+- Start the application: `docker-compose up -d`
+- Stop the application: `docker-compose down`
+- View logs: `docker-compose logs -f`
+- Rebuild and restart: `docker-compose up --build -d`
 
 ## Technologies Used
 
@@ -53,3 +79,4 @@ A web application that generates personalized date ideas based on time available
 - Gradio (for the web interface)
 - OpenAI API (for generating date ideas)
 - python-dotenv (for environment variable management)
+- Docker (for containerization)

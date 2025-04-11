@@ -1,58 +1,10 @@
 import os
 import gradio as gr
-from openai import OpenAI
 from dotenv import load_dotenv
+from utilities.openai_tools import generate_date_ideas
 
 # Load environment variables
 load_dotenv()
-
-# Configure OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-def generate_date_ideas(time_available, budget, vibe, location_type, partner_questions):
-    """Generate date ideas based on user inputs."""
-    
-    # Construct the prompt for OpenAI
-    prompt = f"""
-    Generate 3 perfect date ideas based on the following preferences:
-    
-    Time Available: {time_available}
-    Budget: {budget}
-    Vibe: {vibe}
-    Location Type: {location_type}
-    Partner Preferences: {partner_questions}
-    
-    For each date idea, provide:
-    1. A descriptive title
-    2. Estimated cost range
-    3. Estimated time commitment
-    4. A brief explanation of why it's a good fit
-    5. The date should be location-agnostic (can be done anywhere)
-    
-    Format each date idea as follows:
-    
-    ## Date Idea: [Title]
-    - **Cost**: [Estimated Cost Range]
-    - **Time**: [Estimated Time Commitment]
-    - **Why It's a Good Fit**: [Brief explanation]
-    
-    [Brief description of the date idea with specific activities]
-    """
-    
-    try:
-        # Call OpenAI API
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a helpful date planning assistant that creates personalized date ideas."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        # Extract and return the response
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"Error generating date ideas: {str(e)}"
 
 # Load custom CSS
 css_path = os.path.join(os.path.dirname(__file__), "custom.css")
@@ -92,6 +44,12 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
                 multiselect=True,
                 value=["Restaurant", "Activity"]
             )
+
+            physical_activity = gr.Radio(
+                label="Level of Physical Activity",
+                choices=["Low", "Moderate", "High"],
+                value="Moderate"
+            )
             
             partner_questions = gr.Textbox(
                 label="What does your partner enjoy? (Interests, activities they've mentioned, etc.)",
@@ -108,7 +66,7 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
     # Set up the click event
     generate_button.click(
         fn=generate_date_ideas,
-        inputs=[time_available, budget, vibe, location_type, partner_questions],
+        inputs=[time_available, budget, vibe, location_type, physical_activity, partner_questions],
         outputs=output
     )
     
@@ -118,13 +76,14 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
     2. Choose your budget
     3. Pick the vibe(s) you're looking for
     4. Select preferred location type(s)
-    5. Add information about your partner's preferences
-    6. Click 'Generate Date Ideas' to get personalized recommendations
+    5. Choose the level of physical activity
+    6. Add information about your partner's preferences
+    7. Click 'Generate Date Ideas' to get personalized recommendations
     """)
     
     # Add footer
     gr.HTML('<div class="footer">Perfect Date Generator - Created with ❤️</div>')
 
-# Launch the app
+# Launch the app with server settings for Docker
 if __name__ == "__main__":
-    app.launch() 
+    app.launch(server_name="0.0.0.0", server_port=7860) 

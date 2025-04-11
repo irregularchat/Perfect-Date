@@ -2,14 +2,17 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Copy requirements file
-COPY requirements.txt .
-
 # Install dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create the necessary directories
+RUN mkdir -p utilities
+
 # Copy application files
-COPY . .
+COPY app.py .
+COPY custom.css .
+COPY utilities/ ./utilities/
 
 # Expose the port
 EXPOSE 7860

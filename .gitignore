@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 utilities/__pycache__/
 .env
+=======
+.env
+__pycache__
+>>>>>>> openai-integration
