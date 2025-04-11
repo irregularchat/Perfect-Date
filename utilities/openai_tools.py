@@ -74,6 +74,9 @@ def generate_date_ideas(
                     Generate creative, detailed, and practical date ideas that match the specified time, budget, preferences, and physical activity level.
                     Make sure the physical activity level is appropriate for the date idea.
                     Focus on creating experiences that are memorable and tailored to the couple's interests.
+                    Don't include things that are not possible to do in the location or time of the date.
+                    Include sliders instead of buttons for the user to select time available and budget.
+                    For vibe and Location Type, put all the options as buttons for the user to select and include an "I don't know" option.
                     """
                 },
                 {
