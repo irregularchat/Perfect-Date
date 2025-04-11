@@ -13,6 +13,23 @@
   margin: 0 auto;
 }
 
+/* Logo styling */
+.logo-container {
+  display: flex !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+  margin-bottom: 1rem !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.logo-container img {
+  max-width: 200px;
+  max-height: 150px;
+  object-fit: contain;
+}
+
 h1 {
   color: var(--primary-color) !important;
   font-size: 2.5rem !important;

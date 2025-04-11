@@ -13,6 +13,10 @@ with open(css_path, "r") as f:
 
 # Define Gradio interface
 with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custom_css) as app:
+    # Add the logo
+    logo_path = "static/images/logo.png"
+    gr.Image(value=logo_path, show_label=False, elem_classes="logo-container", height=150, width=200)
+    
     gr.Markdown("# 💕 Perfect Date Generator")
     gr.Markdown("Enter your preferences and get personalized date ideas!")
     
