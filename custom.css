@@ -9,7 +9,7 @@
 }
 
 .gradio-container {
-  max-width: 1200px !important;
+  max-width: 1600px !important;
   margin: 0 auto;
 }
 
@@ -88,6 +88,40 @@ h1 {
   margin-bottom: 0.5rem;
 }
 
+/* Timeline section styling */
+.timeline-section {
+  margin-top: 2rem;
+  border-top: 2px solid var(--accent-color);
+  padding-top: 1rem;
+}
+
+.timeline-section h3 {
+  color: var(--secondary-color) !important;
+  font-size: 1.4rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* Timeline container styling */
+.timeline-container {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 20px;
+  background-color: var(--light-color);
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.timeline-container h3 {
+  color: var(--secondary-color);
+  border-bottom: 1px solid var(--accent-color);
+  padding-bottom: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.timeline-container ul li {
+  margin-bottom: 0.5rem;
+}
+
 /* Cost breakdown styling */
 .output-container table {
   width: 100%;
@@ -108,4 +142,33 @@ h1 {
 
 .output-container table tr:nth-child(even) {
   background-color: #f2f2f2;
+}
+
+/* Make slider labels and values more prominent */
+.gradio-slider label {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 0.5rem !important;
+  display: block !important;
+}
+
+.gradio-slider .wrap {
+  height: auto !important;
+  min-height: 60px !important;
+}
+
+.gradio-slider .slider-value {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  color: var(--primary-color) !important;
+}
+
+/* Section headers */
+.gradio-markdown h3 {
+  color: var(--secondary-color) !important;
+  font-size: 1.3rem !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.8rem !important;
+  border-bottom: 1px solid var(--accent-color);
+  padding-bottom: 0.3rem;
 }
