@@ -6,7 +6,10 @@ services:
     ports:
       - "${PORT:-7860}:7860"
     volumes:
-      - .:/app
+      - ./app.py:/app/app.py
+      - ./custom.css:/app/custom.css
+      - ./utilities:/app/utilities
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PORT=${PORT:-7860}
     restart: unless-stopped 
