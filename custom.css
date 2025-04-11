@@ -1,0 +1,62 @@
+/* Custom styling for Perfect Date Generator */
+
+:root {
+  --primary-color: #ff6b6b;
+  --secondary-color: #4ecdc4;
+  --accent-color: #ffe66d;
+  --dark-color: #292f36;
+  --light-color: #f7fff7;
+}
+
+.gradio-container {
+  max-width: 1200px !important;
+  margin: 0 auto;
+}
+
+h1 {
+  color: var(--primary-color) !important;
+  font-size: 2.5rem !important;
+  margin-bottom: 1rem !important;
+  text-align: center;
+}
+
+.gr-button-primary {
+  background-color: var(--primary-color) !important;
+  border: none !important;
+}
+
+.gr-button-primary:hover {
+  background-color: #ff5252 !important;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: var(--dark-color);
+}
+
+.output-container {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 20px;
+  background-color: var(--light-color);
+}
+
+/* Animation for the generate button */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.generate-btn {
+  animation: pulse 2s infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .gr-form {
+    grid-template-columns: 1fr !important;
+  }
+} 
