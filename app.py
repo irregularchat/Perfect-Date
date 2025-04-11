@@ -19,16 +19,22 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
     with gr.Row():
         with gr.Column():
             # Input components
-            time_available = gr.Radio(
-                label="Time Available",
-                choices=["2 hours", "4 hours", "All day"],
-                value="4 hours"
+            time_available = gr.Slider(
+                label="Time Available (hours)",
+                minimum=1,
+                maximum=12,
+                value=4,
+                step=1,
+                info="Slide to select how many hours you have available"
             )
             
-            budget = gr.Radio(
-                label="Budget",
-                choices=["$20", "$50", "$100+"],
-                value="$50"
+            budget = gr.Slider(
+                label="Budget ($)",
+                minimum=20,
+                maximum=200,
+                value=50,
+                step=10,
+                info="Slide to select your budget in dollars"
             )
             
             vibe = gr.Dropdown(
@@ -45,10 +51,13 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
                 value=["Restaurant", "Activity"]
             )
 
-            physical_activity = gr.Radio(
+            physical_activity = gr.Slider(
                 label="Level of Physical Activity",
-                choices=["Low", "Moderate", "High"],
-                value="Moderate"
+                minimum=1,
+                maximum=10,
+                value=5,
+                step=1,
+                info="1 = Very low, 10 = Very high"
             )
             
             partner_questions = gr.Textbox(
@@ -72,13 +81,13 @@ with gr.Blocks(title="Perfect Date Generator", theme=gr.themes.Soft(), css=custo
     
     gr.Markdown("### How to use")
     gr.Markdown("""
-    1. Select your available time
-    2. Choose your budget
+    1. Adjust the slider for your available time (in hours)
+    2. Set your budget using the slider
     3. Pick the vibe(s) you're looking for
     4. Select preferred location type(s)
-    5. Choose the level of physical activity
+    5. Set your preferred level of physical activity (1-10)
     6. Add information about your partner's preferences
-    7. Click 'Generate Date Ideas' to get personalized recommendations
+    7. Click 'Generate Date Ideas' to get personalized recommendations with timeline and cost breakdown
     """)
     
     # Add footer
