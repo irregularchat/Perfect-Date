@@ -53,6 +53,8 @@ class TestApp(unittest.TestCase):
         
         # Call the function
         main_content, timeline_content, map_html, place_info_html = app.handle_generate(
+            "Casual Dating",
+            2,
             "4 hours",
             "$100",
             ["Romantic", "Adventurous"],

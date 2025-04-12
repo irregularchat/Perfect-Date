@@ -85,7 +85,7 @@ class TestOpenAITools(unittest.TestCase):
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
             self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
-            "preferences", "misc", self.test_location
+            "preferences", "misc", self.test_location, "Casual Dating", 2
         )
         
         # Assert that the mock was called
@@ -104,7 +104,7 @@ class TestOpenAITools(unittest.TestCase):
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
             self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
-            "preferences", "misc", self.test_location
+            "preferences", "misc", self.test_location, "Casual Dating", 2
         )
         
         # Check that the error message is returned
@@ -127,7 +127,7 @@ class TestOpenAITools(unittest.TestCase):
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
             self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
-            "preferences", "misc", self.test_location
+            "preferences", "misc", self.test_location, "Casual Dating", 2
         )
         
         # Check that the error message is returned
@@ -156,7 +156,7 @@ class TestOpenAITools(unittest.TestCase):
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
             self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
-            "preferences", "misc", self.test_location
+            "preferences", "misc", self.test_location, "Casual Dating", 2
         )
         
         # Assert that the mock was called
@@ -194,7 +194,7 @@ class TestOpenAITools(unittest.TestCase):
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
             self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
-            "preferences", "misc", self.test_location
+            "preferences", "misc", self.test_location, "Casual Dating", 2
         )
         
         # Assert that the mock was called
@@ -228,7 +228,7 @@ class TestOpenAITools(unittest.TestCase):
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
             self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
-            "preferences", "misc", self.test_location
+            "preferences", "misc", self.test_location, "Casual Dating", 2
         )
         
         # Assert that the mock was called
@@ -264,7 +264,7 @@ class TestOpenAITools(unittest.TestCase):
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
             self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
-            "preferences", "misc", self.test_location
+            "preferences", "misc", self.test_location, "Casual Dating", 2
         )
         
         # Assert that the mock was called
