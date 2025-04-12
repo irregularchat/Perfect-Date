@@ -12,6 +12,20 @@ css_path = os.path.join(os.path.dirname(__file__), "custom.css")
 with open(css_path, "r") as f:
     custom_css = f.read()
 
+# Add additional CSS for location input
+custom_css += """
+.location-input label {
+    color: var(--primary-color) !important;
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+}
+
+.location-input textarea, .location-input input {
+    border: 2px solid var(--primary-color) !important;
+    background-color: #fff9f9 !important;
+}
+"""
+
 # Define Gradio interface
 with gr.Blocks(
     title="Perfect Date Generator", 
@@ -105,10 +119,10 @@ with gr.Blocks(
             )
             
             location = gr.Textbox(
-                label="Your Location (Optional)",
+                label="Your Location",
                 placeholder="E.g., Seattle, WA, USA",
-                info="Enter your city, state, country for location-specific suggestions",
-                elem_classes="mobile-friendly-input"
+                info="Enter your city, state, country for location-specific suggestions and maps",
+                elem_classes="mobile-friendly-input location-input"
             )
         
         # Second column - Partner preferences
@@ -170,18 +184,19 @@ with gr.Blocks(
     with gr.Row():
         output = gr.Markdown(label="Your Perfect Date Ideas", elem_classes="output-container")
     
-    # Timeline section (separate from the main output)
-    with gr.Row(elem_classes="timeline-section"):
-        gr.Markdown("### Timeline of Events")
-        timeline_output = gr.Markdown(elem_classes="timeline-container")
+    # Timeline section - making it widescreen
+    with gr.Row(elem_classes="timeline-section full-width"):
+        timeline_output = gr.HTML(elem_classes="timeline-container")
     
-    # Map and place info section
-    with gr.Row(elem_classes="map-section") as map_row:
-        map_section = gr.Markdown("### Map & Place Information")
-        with gr.Column(scale=1):
-            map_output = gr.HTML(label="Map", elem_classes="map-container")
-        with gr.Column(scale=1):
-            place_info = gr.HTML(label="Place Information", elem_classes="place-info-container")
+    # Map and place info section - full width with no unnecessary containers
+    with gr.Row(elem_classes="map-section full-width") as map_row:
+        gr.HTML("<h2 style='color:#ff6b6b; border-bottom:2px solid #ffe66d; padding-bottom:15px; margin-top:30px; margin-bottom:25px; font-size:24px; font-weight:bold; width:100%; text-align:left;'>Map & Place Information</h2>", elem_classes="full-width")
+        
+        # Map container with absolutely no label
+        map_output = gr.HTML(elem_classes="map-container full-width", show_label=False)
+        
+        # Place info container with absolutely no label
+        place_info = gr.HTML(elem_classes="place-info-container full-width", show_label=False)
     
     # Set up the click event
     def handle_generate(
@@ -198,25 +213,67 @@ with gr.Blocks(
         # Format place details for display
         place_info_html = ""
         if place_details:
-            place_info_html = "<h3>Recommended Places</h3>"
+            place_info_html = """
+            <h3 style="color:#ff6b6b; font-size:22px; font-weight:bold; border-bottom:1px solid #eee; padding-bottom:10px; margin-top:0; margin-bottom:20px;">Recommended Places</h3>
+            """
+            
             for place in place_details:
                 name = place.get('name', 'Unknown Place')
                 address = place.get('formatted_address', place.get('vicinity', 'No address available'))
                 rating = place.get('rating', 'No rating')
+                maps_url = place.get('url', place.get('maps_url', '#'))
+                
+                # Get busy status if available
+                busy_status = ""
+                if 'opening_hours' in place:
+                    if place['opening_hours'].get('open_now', False):
+                        busy_status = "Currently open"
+                    else:
+                        busy_status = "Currently closed"
                 
                 place_info_html += f"""
-                <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                    <h4>{name}</h4>
+                <div style="margin-bottom:25px; padding:20px; border:1px solid #eee; border-radius:8px; background-color:#f9f9f9; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <h4 style="color:#ff6b6b; margin-top:0; margin-bottom:15px; font-size:18px; font-weight:bold;">{name}</h4>
                     <p><strong>Address:</strong> {address}</p>
                     <p><strong>Rating:</strong> {rating}/5</p>
+                    {f"<p><strong>Status:</strong> {busy_status}</p>" if busy_status else ""}
+                    <p><a href="{maps_url}" target="_blank" style="display:inline-block; padding:6px 12px; background-color:#4285F4; color:white; border-radius:4px; text-decoration:none; font-weight:600; margin-top:8px;">View on Google Maps</a></p>
                 """
+                
+                # Add website if available
+                if place.get('website'):
+                    place_info_html += f"""
+                    <p><strong>Website:</strong> <a href="{place['website']}" target="_blank" style="color:#4285F4; text-decoration:none; font-weight:600;">{place['website']}</a></p>
+                    """
+                
+                # Add phone if available
+                if place.get('formatted_phone_number'):
+                    place_info_html += f"""
+                    <p><strong>Phone:</strong> {place['formatted_phone_number']}</p>
+                    """
                 
                 # Add opening hours if available
                 if 'opening_hours' in place and 'weekday_text' in place['opening_hours']:
-                    place_info_html += "<p><strong>Opening Hours:</strong></p><ul>"
+                    place_info_html += "<p><strong>Opening Hours:</strong></p><ul style='margin-left:20px; margin-bottom:15px;'>"
                     for day in place['opening_hours']['weekday_text']:
-                        place_info_html += f"<li>{day}</li>"
+                        place_info_html += f"<li style='margin-bottom:5px;'>{day}</li>"
                     place_info_html += "</ul>"
+                
+                # Add reviews if available
+                if 'reviews' in place and place['reviews']:
+                    place_info_html += "<p><strong>Top Review:</strong></p>"
+                    review = place['reviews'][0]
+                    author = review.get('author_name', 'Anonymous')
+                    review_rating = review.get('rating', 'No rating')
+                    text = review.get('text', 'No comment')
+                    time = review.get('relative_time_description', '')
+                    
+                    place_info_html += f"""
+                    <div style="margin-bottom:10px; padding:12px; border-left:3px solid #ddd; background-color:#f5f5f5; border-radius:0 4px 4px 0;">
+                        <p><strong>{author}</strong> - {review_rating}/5 ({time})</p>
+                        <p style="margin-bottom:0;">{text}</p>
+                    </div>
+                    """
                 
                 place_info_html += "</div>"
         
@@ -251,7 +308,7 @@ with gr.Blocks(
     3. Pick the vibe(s) you're looking for
     4. Select preferred location type(s)
     5. Set your preferred level of physical activity (1-10)
-    6. Enter your location for area-specific suggestions (optional)
+    6. **Enter your location for area-specific suggestions and interactive maps**
     7. Fill in the optional partner preference fields
     8. Add your own preferences (optional)
     9. Include any miscellaneous information if needed
@@ -260,6 +317,81 @@ with gr.Blocks(
     
     # Add footer
     gr.HTML('<div class="footer">Perfect Date Generator - Created with ❤️</div>')
+    
+    # Add JavaScript to handle clickable places
+    gr.HTML("""
+    <script>
+    // Wait for DOM to be fully loaded and then set up observers
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM fully loaded');
+        setupPlaceClickHandlers();
+        observeDOMChanges();
+    });
+    
+    // Function to set up click handlers for clickable places
+    function setupPlaceClickHandlers() {
+        console.log('Setting up click handlers');
+        const placeElements = document.querySelectorAll('.clickable-place');
+        console.log('Found ' + placeElements.length + ' clickable places');
+        
+        placeElements.forEach(element => {
+            // Remove any existing click handlers first
+            element.removeEventListener('click', togglePlaceDetails);
+            // Add new click handler
+            element.addEventListener('click', togglePlaceDetails);
+        });
+    }
+    
+    // Toggle place details visibility
+    function togglePlaceDetails(e) {
+        e.preventDefault();
+        const placeId = this.getAttribute('data-place-id');
+        const placeDetails = document.getElementById(placeId);
+        
+        if (!placeDetails) {
+            console.error('Place details not found for ID: ' + placeId);
+            return;
+        }
+        
+        // Toggle visibility
+        if (placeDetails.style.display === 'none' || !placeDetails.style.display) {
+            placeDetails.style.display = 'block';
+        } else {
+            placeDetails.style.display = 'none';
+        }
+    }
+    
+    // Observe DOM changes to set up handlers for dynamically added elements
+    function observeDOMChanges() {
+        console.log('Setting up MutationObserver');
+        const observer = new MutationObserver(function(mutations) {
+            let shouldSetupHandlers = false;
+            
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                    for (let i = 0; i < mutation.addedNodes.length; i++) {
+                        const node = mutation.addedNodes[i];
+                        if (node.classList && 
+                            (node.classList.contains('timeline-container') || 
+                             node.querySelector && node.querySelector('.clickable-place'))) {
+                            shouldSetupHandlers = true;
+                            break;
+                        }
+                    }
+                }
+            });
+            
+            if (shouldSetupHandlers) {
+                console.log('Found new content with clickable places');
+                setupPlaceClickHandlers();
+            }
+        });
+        
+        // Start observing the document with the configured parameters
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+    </script>
+    """)
 
 # Launch the app with server settings for Docker
 if __name__ == "__main__":
