@@ -16,6 +16,8 @@
 body, .gradio-container {
   font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   color: var(--text-color);
+  font-size: 16px !important;
+  line-height: 1.6 !important;
 }
 
 .gradio-container {
@@ -23,16 +25,47 @@ body, .gradio-container {
   margin: 0 auto;
 }
 
+/* Logo styling */
+.logo-container-row {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin: 0 auto !important;
+  margin-bottom: 1rem !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 10px 0 !important;
+}
+
+.centered-logo {
+  display: block !important;
+  margin: 0 auto !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  max-width: 150px !important;
+  max-height: 150px !important;
+}
+
+.centered-logo img {
+  object-fit: contain !important;
+}
+
 h1 {
   color: var(--primary-color) !important;
   font-size: 2.5rem !important;
   margin-bottom: 1rem !important;
   text-align: center;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+  font-weight: 700 !important;
 }
 
 .gr-button-primary {
   background-color: var(--primary-color) !important;
   border: none !important;
+  color: white !important;
+  font-weight: 600 !important;
 }
 
 .gr-button-primary:hover {
@@ -42,7 +75,7 @@ h1 {
 .footer {
   text-align: center;
   margin-top: 2rem;
-  font-size: 0.9rem;
+  font-size: 1rem !important;
   color: var(--dark-color);
   padding: 10px;
   font-weight: 500;
@@ -60,7 +93,7 @@ h1 {
 
 .gradio-textbox textarea::placeholder, .gradio-textbox input::placeholder {
   color: var(--placeholder-color) !important;
-  opacity: 0.7 !important;  /* More transparent placeholders */
+  opacity: 0.8 !important;  /* More visible placeholders */
 }
 
 /* Label styling for better contrast */
@@ -77,10 +110,11 @@ h1 {
   border-radius: 8px;
   border: 1px solid #ddd;
   padding: 20px;
-  background-color: var(--light-color);
-  color: var(--text-color) !important;
-  font-size: 1rem !important;
-  line-height: 1.5 !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  font-size: 1.1rem !important;
+  line-height: 1.6 !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .output-container h2 {
@@ -88,19 +122,59 @@ h1 {
   margin-top: 1.5rem;
   border-bottom: 2px solid var(--accent-color);
   padding-bottom: 0.5rem;
-  font-size: 1.4rem !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
 }
 
 .output-container h3 {
   color: var(--secondary-color);
   margin-top: 1rem;
-  font-size: 1.2rem;
+  font-size: 1.3rem !important;
   font-weight: 600 !important;
 }
 
 .output-container p {
   margin-bottom: 1rem !important;
-  color: var(--text-color) !important;
+  color: #000000 !important;
+  font-size: 1.1rem !important;
+}
+
+/* Make sure all text in the output is legible */
+.output-container * {
+  color: #000000 !important;
+}
+
+.output-container strong {
+  font-weight: 700 !important;
+}
+
+/* Timeline styling */
+.timeline-container {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 20px;
+  background-color: #ffffff !important;
+  margin-top: 1rem;
+  width: 100%;
+  color: #000000 !important;
+  font-size: 1.1rem !important;
+  line-height: 1.6 !important;
+}
+
+.timeline-container * {
+  color: #000000 !important;
+}
+
+.timeline-container h2 {
+  color: var(--primary-color) !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+}
+
+.timeline-container h3 {
+  color: var(--secondary-color) !important;
+  font-size: 1.3rem !important;
+  font-weight: 600 !important;
 }
 
 /* Animation for the generate button */
@@ -227,6 +301,7 @@ h1 {
 .timeline-section h3 {
   color: var(--secondary-color) !important;
   font-size: 1.4rem !important;
+  font-weight: 700 !important;
   margin-bottom: 1rem !important;
 }
 
@@ -259,14 +334,17 @@ h1 {
 }
 
 .output-container table th, .output-container table td {
-  border: 1px solid #ddd;
-  padding: 8px;
+  border: 1px solid #bbb;
+  padding: 10px;
   text-align: left;
+  color: #000000 !important;
+  font-size: 1rem !important;
 }
 
 .output-container table th {
   background-color: var(--accent-color);
-  color: var(--dark-color);
+  color: #000000 !important;
+  font-weight: 700 !important;
 }
 
 .output-container table tr:nth-child(even) {
@@ -359,27 +437,27 @@ h1 {
   body, .gradio-container {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     font-size: 16px !important;
-    line-height: 1.5 !important;
+    line-height: 1.6 !important;
   }
   
   /* Improve text readability */
   p, li, span {
-    font-size: 1rem !important;
+    font-size: 1.05rem !important;
     line-height: 1.6 !important;
     color: var(--text-color) !important;
   }
   
   /* Ensure output text is clearly visible */
   .output-container p, .timeline-container p {
-    font-size: 1.05rem !important;
+    font-size: 1.1rem !important;
     line-height: 1.6 !important;
     margin-bottom: 1rem !important;
-    color: var(--text-color) !important;
+    color: #000000 !important;
   }
   
   /* Make output headers stand out */
   .output-container h2, .timeline-container h2 {
-    font-size: 1.4rem !important;
+    font-size: 1.5rem !important;
     font-weight: 700 !important;
     color: var(--primary-color) !important;
     margin-top: 1.5rem !important;
@@ -387,7 +465,7 @@ h1 {
   }
   
   .output-container h3, .timeline-container h3 {
-    font-size: 1.2rem !important;
+    font-size: 1.3rem !important;
     font-weight: 600 !important;
     color: var(--secondary-color) !important;
     margin-top: 1.2rem !important;
@@ -468,9 +546,9 @@ h1 {
   /* Improve "How to use" section readability */
   .gradio-markdown ol li, .gradio-markdown ul li {
     margin-bottom: 10px !important;
-    color: var(--text-color) !important;
-    font-size: 1rem !important;
-    line-height: 1.5 !important;
+    color: #000000 !important;
+    font-size: 1.05rem !important;
+    line-height: 1.6 !important;
   }
   
   /* Make generate button more prominent */
@@ -502,16 +580,18 @@ h1 {
     margin-top: 20px !important;
   }
   
-  .output-container p, .timeline-container p {
-    color: #222222 !important;
-    font-size: 1.05rem !important;
+  .output-container p, .timeline-container p,
+  .output-container li, .timeline-container li,
+  .output-container span, .timeline-container span {
+    color: #000000 !important;
+    font-size: 1.1rem !important;
     line-height: 1.6 !important;
     margin-bottom: 12px !important;
   }
   
   .output-container h2, .timeline-container h2 {
     color: var(--primary-color) !important;
-    font-size: 1.4rem !important;
+    font-size: 1.5rem !important;
     font-weight: 700 !important;
     margin-top: 20px !important;
     margin-bottom: 12px !important;
@@ -521,14 +601,24 @@ h1 {
   
   .output-container h3, .timeline-container h3 {
     color: var(--secondary-color) !important;
-    font-size: 1.2rem !important;
+    font-size: 1.3rem !important;
     font-weight: 600 !important;
     margin-top: 16px !important;
     margin-bottom: 10px !important;
   }
   
-  .output-container ul li, .timeline-container ul li {
+  .output-container ul li, .timeline-container ul li,
+  .output-container ol li, .timeline-container ol li {
     margin-bottom: 8px !important;
-    color: #222222 !important;
+    color: #000000 !important;
+    font-size: 1.1rem !important;
+  }
+  
+  /* Improve "How to use" section readability */
+  .gradio-markdown ol li, .gradio-markdown ul li {
+    margin-bottom: 10px !important;
+    color: #000000 !important;
+    font-size: 1.05rem !important;
+    line-height: 1.6 !important;
   }
 }

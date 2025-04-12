@@ -22,6 +22,11 @@ with gr.Blocks(
     ), 
     css=custom_css
 ) as app:
+    # Add the logo at the top
+    logo_path = "static/images/logo.png"
+    with gr.Row(elem_classes="logo-container-row"):
+        gr.Image(value=logo_path, show_label=False, container=False, height=100, width=100, elem_classes="centered-logo")
+    
     gr.Markdown("# 💕 Perfect Date Generator")
     gr.Markdown("Enter your preferences and get personalized date ideas!")
     
