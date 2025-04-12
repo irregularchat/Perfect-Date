@@ -38,26 +38,35 @@ class TestOpenAITools(unittest.TestCase):
         
         For an extra special touch, bring a portable speaker for some quiet background music during your picnic, and download a stargazing app to identify constellations together.
         """
+        
+        # Sample incorrectly formatted OpenAI response
+        self.malformed_date_idea = """
+        Here's a date idea for you:
+        
+        A nice dinner at a local restaurant followed by a walk in the park.
+        It should cost about $100 and take 3 hours.
+        """
     
     @patch('utilities.openai_tools.client')
-    def test_is_openai_available(self, mock_client):
-        """Test the is_openai_available function."""
-        # Test when client is not None
+    def test_is_openai_available_when_true(self, mock_client):
+        """Test the is_openai_available function when it returns True."""
+        # Set up the mock client to not be None
         mock_client.return_value = MagicMock()
+        # The actual function checks if client is not None
         self.assertTrue(is_openai_available())
-        
-        # Test when client is None
-        mock_client.return_value = None
+    
+    @patch('utilities.openai_tools.client', None)
+    def test_is_openai_available_when_false(self):
+        """Test the is_openai_available function when it returns False."""
+        # When client is None, the function should return False
         self.assertFalse(is_openai_available())
     
     @patch('utilities.openai_tools.client')
-    @patch('utilities.openai_tools.is_openai_available')
     @patch('utilities.openai_tools.is_maps_available')
     @patch('utilities.openai_tools.search_places_for_date_idea')
-    def test_generate_date_ideas_with_valid_api(self, mock_search_places, mock_is_maps, mock_is_openai, mock_client):
+    def test_generate_date_ideas_with_valid_api(self, mock_search_places, mock_is_maps, mock_client):
         """Test generate_date_ideas when OpenAI API is available."""
-        # Mock OpenAI and Maps API availability
-        mock_is_openai.return_value = True
+        # Mock Maps API availability
         mock_is_maps.return_value = True
         
         # Mock the OpenAI response
@@ -70,7 +79,7 @@ class TestOpenAITools(unittest.TestCase):
         mock_client.chat.completions.create.return_value = mock_chat_completion
         
         # Mock the map search results
-        mock_search_places.return_value = ("<div>Map HTML</div>", [{"name": "Test Place", "vicinity": "123 Test St"}])
+        mock_search_places.return_value = ("<div>Map HTML</div>", [{"name": "Test Place", "vicinity": "123 Test St"}], "Place Info HTML")
         
         # Call the function
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
@@ -88,16 +97,14 @@ class TestOpenAITools(unittest.TestCase):
         self.assertEqual(map_html, "<div>Map HTML</div>")
         self.assertEqual(place_details, [{"name": "Test Place", "vicinity": "123 Test St"}])
     
-    @patch('utilities.openai_tools.is_openai_available')
-    def test_generate_date_ideas_without_api(self, mock_is_openai):
+    @patch('utilities.openai_tools.client', None)
+    def test_generate_date_ideas_without_api(self):
         """Test generate_date_ideas when OpenAI API is not available."""
-        # Mock OpenAI API unavailability
-        mock_is_openai.return_value = False
-        
-        # Call the function
+        # Call the function with all required parameters
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
-            self.test_physical_activity
+            self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
+            "preferences", "misc", self.test_location
         )
         
         # Check that the error message is returned
@@ -107,26 +114,165 @@ class TestOpenAITools(unittest.TestCase):
         self.assertEqual(place_details, [])
     
     @patch('utilities.openai_tools.client')
-    @patch('utilities.openai_tools.is_openai_available')
     @patch('utilities.openai_tools.is_maps_available')
-    def test_generate_date_ideas_with_exception(self, mock_is_maps, mock_is_openai, mock_client):
+    def test_generate_date_ideas_with_exception(self, mock_is_maps, mock_client):
         """Test generate_date_ideas when an exception occurs."""
-        # Mock API availability
-        mock_is_openai.return_value = True
+        # Mock Maps API availability
         mock_is_maps.return_value = False
         
         # Mock the OpenAI client to raise an exception
         mock_client.chat.completions.create.side_effect = Exception("Test exception")
         
-        # Call the function
+        # Call the function with all required parameters
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
-            self.test_physical_activity
+            self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
+            "preferences", "misc", self.test_location
         )
         
         # Check that the error message is returned
         self.assertIn("Error Generating Date Ideas", main_content)
         self.assertEqual(timeline_content, "")
+        self.assertEqual(map_html, "")
+        self.assertEqual(place_details, [])
+    
+    @patch('utilities.openai_tools.client')
+    @patch('utilities.openai_tools.is_maps_available')
+    def test_generate_date_ideas_with_maps_disabled(self, mock_is_maps, mock_client):
+        """Test generate_date_ideas when Maps API is not available."""
+        # Mock Maps API availability to be false
+        mock_is_maps.return_value = False
+        
+        # Mock the OpenAI response
+        mock_chat_completion = MagicMock()
+        mock_choice = MagicMock()
+        mock_message = MagicMock()
+        mock_message.content = self.sample_date_idea
+        mock_choice.message = mock_message
+        mock_chat_completion.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_chat_completion
+        
+        # Call the function
+        main_content, timeline_content, map_html, place_details = generate_date_ideas(
+            self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
+            self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
+            "preferences", "misc", self.test_location
+        )
+        
+        # Assert that the mock was called
+        mock_client.chat.completions.create.assert_called_once()
+        
+        # Check that the response was processed correctly but without map content
+        self.assertIn("Date Idea: Sunset Picnic", main_content)
+        self.assertIn("Timeline for Sunset Picnic", timeline_content)
+        # Map should be empty when maps API is disabled
+        self.assertEqual(map_html, "")
+        self.assertEqual(place_details, [])
+    
+    @patch('utilities.openai_tools.client')
+    @patch('utilities.openai_tools.is_maps_available')
+    @patch('utilities.openai_tools.search_places_for_date_idea')
+    def test_generate_date_ideas_with_malformed_response(self, mock_search_places, mock_is_maps, mock_client):
+        """Test generate_date_ideas when OpenAI API returns a malformed response."""
+        # Mock Maps API availability
+        mock_is_maps.return_value = True
+        
+        # Mock the OpenAI response with malformed content
+        mock_chat_completion = MagicMock()
+        mock_choice = MagicMock()
+        mock_message = MagicMock()
+        mock_message.content = self.malformed_date_idea
+        mock_choice.message = mock_message
+        mock_chat_completion.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_chat_completion
+        
+        # Since the response is malformed, no date components will be extracted
+        # So search_places will not be called with meaningful parameters
+        mock_search_places.return_value = ("", [], "")
+        
+        # Call the function
+        main_content, timeline_content, map_html, place_details = generate_date_ideas(
+            self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
+            self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
+            "preferences", "misc", self.test_location
+        )
+        
+        # Assert that the mock was called
+        mock_client.chat.completions.create.assert_called_once()
+        
+        # Check that the response was processed, even if malformed
+        self.assertIn("Here's a date idea for you", main_content)
+        # Timeline content should be empty as it doesn't match the regex
+        self.assertEqual(timeline_content, "")
+        # Map should be empty because there are no date components extracted
+        self.assertEqual(map_html, "")
+        self.assertEqual(place_details, [])
+    
+    @patch('utilities.openai_tools.client')
+    @patch('utilities.openai_tools.is_maps_available')
+    def test_generate_date_ideas_with_empty_response(self, mock_is_maps, mock_client):
+        """Test generate_date_ideas when OpenAI API returns an empty response."""
+        # Mock Maps API availability
+        mock_is_maps.return_value = True
+        
+        # Mock the OpenAI response with empty content
+        mock_chat_completion = MagicMock()
+        mock_choice = MagicMock()
+        mock_message = MagicMock()
+        mock_message.content = ""
+        mock_choice.message = mock_message
+        mock_chat_completion.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_chat_completion
+        
+        # Call the function
+        main_content, timeline_content, map_html, place_details = generate_date_ideas(
+            self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
+            self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
+            "preferences", "misc", self.test_location
+        )
+        
+        # Assert that the mock was called
+        mock_client.chat.completions.create.assert_called_once()
+        
+        # Check that an error message is returned for empty response
+        self.assertIn("No date ideas were generated", main_content)
+        self.assertEqual(timeline_content, "")
+        self.assertEqual(map_html, "")
+        self.assertEqual(place_details, [])
+    
+    @patch('utilities.openai_tools.client')
+    @patch('utilities.openai_tools.is_maps_available')
+    @patch('utilities.openai_tools.search_places_for_date_idea')
+    def test_search_places_failure(self, mock_search_places, mock_is_maps, mock_client):
+        """Test generate_date_ideas when places search fails."""
+        # Mock Maps API availability
+        mock_is_maps.return_value = True
+        
+        # Mock the OpenAI response
+        mock_chat_completion = MagicMock()
+        mock_choice = MagicMock()
+        mock_message = MagicMock()
+        mock_message.content = self.sample_date_idea
+        mock_choice.message = mock_message
+        mock_chat_completion.choices = [mock_choice]
+        mock_client.chat.completions.create.return_value = mock_chat_completion
+        
+        # Mock the map search to fail
+        mock_search_places.return_value = ("", [], "")
+        
+        # Call the function
+        main_content, timeline_content, map_html, place_details = generate_date_ideas(
+            self.test_time, self.test_budget, self.test_vibe, self.test_location_type,
+            self.test_physical_activity, "likes", "dislikes", "hobbies", "personality",
+            "preferences", "misc", self.test_location
+        )
+        
+        # Assert that the mock was called
+        mock_client.chat.completions.create.assert_called_once()
+        
+        # Check that the response was processed correctly
+        self.assertIn("Date Idea: Sunset Picnic", main_content)
+        self.assertIn("Timeline for Sunset Picnic", timeline_content)
         self.assertEqual(map_html, "")
         self.assertEqual(place_details, [])
 
