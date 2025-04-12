@@ -80,6 +80,13 @@ with gr.Blocks(
                 value=["Restaurant", "Activity"],
                 elem_classes="mobile-friendly-dropdown"
             )
+            
+            location = gr.Textbox(
+                label="Your Location (Optional)",
+                placeholder="E.g., Seattle, WA, USA",
+                info="Enter your city, state, country for location-specific suggestions",
+                elem_classes="mobile-friendly-input"
+            )
         
         # Second column - Partner preferences
         with gr.Column(scale=1):
@@ -159,7 +166,8 @@ with gr.Blocks(
             partner_hobbies,
             partner_personality,
             self_preferences,
-            misc_input
+            misc_input,
+            location
         ],
         outputs=[output, timeline_output]
     )
@@ -171,10 +179,11 @@ with gr.Blocks(
     3. Pick the vibe(s) you're looking for
     4. Select preferred location type(s)
     5. Set your preferred level of physical activity (1-10)
-    6. Fill in the optional partner preference fields
-    7. Add your own preferences (optional)
-    8. Include any miscellaneous information if needed
-    9. Click 'Generate Date Ideas' to get personalized recommendations with timeline and cost breakdown
+    6. Enter your location for area-specific suggestions (optional)
+    7. Fill in the optional partner preference fields
+    8. Add your own preferences (optional)
+    9. Include any miscellaneous information if needed
+    10. Click 'Generate Date Ideas' to get personalized recommendations with timeline and cost breakdown
     """)
     
     # Add footer

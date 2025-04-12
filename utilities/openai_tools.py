@@ -23,7 +23,8 @@ def generate_date_ideas(
     partner_hobbies: str,
     partner_personality: str,
     self_preferences: str,
-    misc_input: str
+    misc_input: str,
+    location: str = ""
 ) -> tuple:
     """
     Generate personalized date ideas based on user preferences.
@@ -40,6 +41,7 @@ def generate_date_ideas(
         partner_personality (str): Partner's personality traits
         self_preferences (str): User's own preferences
         misc_input (str): Miscellaneous information to consider
+        location (str, optional): User's location (city, state, country)
 
     Returns:
         tuple: (main_content, timeline_content) - Formatted text containing the date ideas and separate timeline content
@@ -54,6 +56,7 @@ def generate_date_ideas(
         Vibe: {', '.join(vibe)}
         Location Type: {', '.join(location_type)}
         Physical Activity Level: {physical_activity}/10
+        Location: {location if location else "Not specified (provide location-agnostic ideas)"}
         
         Partner Preferences:
         - Likes: {partner_likes if partner_likes else "Not specified"}
@@ -71,7 +74,7 @@ def generate_date_ideas(
         3. A detailed cost breakdown for each activity/component
         4. The overall vibe and atmosphere
         5. A brief explanation of why it's a good fit
-        6. The date should be location-agnostic (can be done anywhere)
+        6. If location is provided, include location-specific suggestions; otherwise, provide location-agnostic ideas
         
         Format each date idea as follows:
         
@@ -110,6 +113,8 @@ def generate_date_ideas(
                     4. Make sure the physical activity level is appropriate (1 = very low, 10 = very high)
                     5. Focus on creating experiences that are memorable and tailored to the couple's interests
                     6. Don't include things that are not possible to do in the allocated time
+                    7. If a location is provided, tailor the suggestions to that specific area with local attractions and venues
+                    8. If no location is provided, keep the suggestions general and applicable anywhere
                     
                     The output should be well-formatted with clear sections for timeline, costs, and overall experience.
                     """
