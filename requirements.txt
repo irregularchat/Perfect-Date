@@ -4,3 +4,6 @@ python-dotenv
 requests
 googlemaps
 folium
+pytest
+pytest-mock
+pytest-cov
