@@ -35,7 +35,9 @@ def generate_date_ideas(
     partner_personality: str = "",
     self_preferences: str = "",
     misc_input: str = "",
-    location: str = ""
+    location: str = "",
+    relationship_type: str = "Casual Dating",
+    participants: int = 2
 ) -> tuple:
     """
     Generate personalized date ideas based on user preferences.
@@ -46,13 +48,15 @@ def generate_date_ideas(
         vibe (list): List of vibes for the date
         location_type (list): List of location types for the date
         physical_activity (float): Level of physical activity (1-10 scale)
-        partner_likes (str): Things the partner likes
+        partner_likes (str): Things the partner like
         partner_dislikes (str): Things the partner dislikes
         partner_hobbies (str): Partner's hobbies
         partner_personality (str): Partner's personality traits
         self_preferences (str): User's own preferences
         misc_input (str): Miscellaneous information to consider
         location (str, optional): User's location (city, state, country)
+        relationship_type (str, optional): Type of relationship (e.g., Casual Dating, Married)
+        participants (int, optional): Number of participants for group activities
 
     Returns:
         tuple: (main_content, timeline_content, map_html, place_details) - Formatted text containing the date ideas, timeline content, map HTML, and place details
@@ -73,6 +77,8 @@ def generate_date_ideas(
         prompt = f"""
         Generate 3 perfect date ideas based on the following preferences:
         
+        Relationship Type: {relationship_type}
+        {f"Number of Participants: {participants}" if relationship_type in ["Night with the Girls", "Night with the Boys", "Afterwork"] else ""}
         Time Available: {time_available} hours
         Budget: ${budget}
         Vibe: {', '.join(vibe) if vibe else "Not specified"}
@@ -126,14 +132,22 @@ def generate_date_ideas(
                     "role": "system",
                     "content": """
                     You are a helpful assistant that generates personalized date ideas based on user preferences.
-                    Generate creative, detailed, and practical date ideas that match the specified time, budget, preferences, and physical activity level.
+                    Generate creative, detailed, and practical date ideas that match the specified relationship type, time, budget, preferences, and physical activity level.
+                    
+                    Tailor your suggestions to the relationship context:
+                    - For "First Date" - focus on getting-to-know-you activities in public settings
+                    - For "Casual Dating" - suggest fun, low-pressure activities
+                    - For "Married" - include ideas that help break routine and rekindle romance
+                    - For "Hook Up" - suggest activities with a flirtatious atmosphere
+                    - For "Night with the Girls/Boys" - focus on group-friendly activities
+                    - For "Afterwork" - suggest activities that can be done after work hours
                     
                     For each date idea:
                     1. Create a detailed timeline breaking down activities by time
                     2. Provide specific cost estimates for each component of the date
                     3. Ensure the total cost stays within the specified budget
                     4. Make sure the physical activity level is appropriate (1 = very low, 10 = very high)
-                    5. Focus on creating experiences that are memorable and tailored to the couple's interests
+                    5. Focus on creating experiences that are memorable and tailored to the relationship context
                     6. Don't include things that are not possible to do in the allocated time
                     7. If a location is provided, tailor the suggestions to that specific area with local attractions and venues
                     8. If no location is provided, keep the suggestions general and applicable anywhere

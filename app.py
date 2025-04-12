@@ -72,6 +72,24 @@ with gr.Blocks(
         # First column - Basic preferences
         with gr.Column(scale=1):
             gr.Markdown("### Basic Preferences")
+            relationship_type = gr.Dropdown(
+                label="Type of Date",
+                choices=["Casual Dating", "Married", "First Date", "Hook Up", "Night with the Girls", "Night with the Boys", "Afterwork"],
+                value="Casual Dating",
+                elem_classes="mobile-friendly-dropdown"
+            )
+            
+            # Conditionally show number of participants for group activities
+            participants = gr.Number(
+                label="Number of Participants",
+                value=2,
+                minimum=1,
+                maximum=20,
+                step=1,
+                visible=False,
+                elem_classes="mobile-friendly-input"
+            )
+            
             time_available = gr.Slider(
                 label="Time Available (hours)",
                 minimum=1,
@@ -200,14 +218,14 @@ with gr.Blocks(
     
     # Set up the click event
     def handle_generate(
-        time_available, budget, vibe, location_type, physical_activity, 
+        relationship_type, participants, time_available, budget, vibe, location_type, physical_activity, 
         partner_likes, partner_dislikes, partner_hobbies, partner_personality,
         self_preferences, misc_input, location
     ):
         main_content, timeline_content, map_html, place_details = generate_date_ideas(
             time_available, budget, vibe, location_type, physical_activity, 
             partner_likes, partner_dislikes, partner_hobbies, partner_personality,
-            self_preferences, misc_input, location
+            self_preferences, misc_input, location, relationship_type, participants
         )
         
         # Format place details for display
@@ -285,6 +303,8 @@ with gr.Blocks(
     generate_button.click(
         fn=handle_generate,
         inputs=[
+            relationship_type,
+            participants,
             time_available, 
             budget, 
             vibe, 
@@ -303,20 +323,73 @@ with gr.Blocks(
     
     gr.Markdown("### How to use")
     gr.Markdown("""
-    1. Adjust the slider for your available time (in hours)
-    2. Set your budget using the slider (up to $500)
-    3. Pick the vibe(s) you're looking for
-    4. Select preferred location type(s)
-    5. Set your preferred level of physical activity (1-10)
-    6. **Enter your location for area-specific suggestions and interactive maps**
-    7. Fill in the optional partner preference fields
-    8. Add your own preferences (optional)
-    9. Include any miscellaneous information if needed
-    10. Click 'Generate Date Ideas' to get personalized recommendations with timeline and cost breakdown
+    1. Select the type of date (casual dating, married, first date, etc.)
+    2. For group activities, specify the number of participants
+    3. Adjust the slider for your available time (in hours)
+    4. Set your budget using the slider (up to $500)
+    5. Pick the vibe(s) you're looking for
+    6. Select preferred location type(s)
+    7. Set your preferred level of physical activity (1-10)
+    8. **Enter your location for area-specific suggestions and interactive maps**
+    9. Fill in the optional partner preference fields
+    10. Add your own preferences (optional)
+    11. Include any miscellaneous information if needed
+    12. Click 'Generate Date Ideas' to get personalized recommendations with timeline and cost breakdown
     """)
     
     # Add footer
     gr.HTML('<div class="footer">Perfect Date Generator - Created with ❤️</div>')
+    
+    # Add JavaScript to handle conditional visibility of participants field
+    gr.HTML("""
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up the relationship type change handler
+        setupRelationshipTypeHandler();
+        observeRelationshipTypeChanges();
+    });
+    
+    function setupRelationshipTypeHandler() {
+        const relationshipDropdown = document.querySelector('select[data-testid="dropdown"]');
+        if (relationshipDropdown) {
+            relationshipDropdown.addEventListener('change', function() {
+                toggleParticipantsVisibility(this.value);
+            });
+            
+            // Initial check
+            toggleParticipantsVisibility(relationshipDropdown.value);
+        }
+    }
+    
+    function toggleParticipantsVisibility(value) {
+        const participantsContainer = document.querySelector('input[aria-label="Number of Participants"]').closest('.gradio-container');
+        
+        if (value === "Night with the Girls" || value === "Night with the Boys" || value === "Afterwork") {
+            participantsContainer.style.display = 'block';
+        } else {
+            participantsContainer.style.display = 'none';
+        }
+    }
+    
+    function observeRelationshipTypeChanges() {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                    for (let i = 0; i < mutation.addedNodes.length; i++) {
+                        const node = mutation.addedNodes[i];
+                        if (node.querySelector && node.querySelector('select[data-testid="dropdown"]')) {
+                            setupRelationshipTypeHandler();
+                            break;
+                        }
+                    }
+                }
+            });
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+    </script>
+    """)
     
     # Add JavaScript to handle clickable places
     gr.HTML("""
