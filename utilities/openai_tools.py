@@ -1,16 +1,27 @@
 import os
-from typing import Dict, Optional, Tuple
+import re
+from typing import Dict, List, Optional, Tuple
 
 from openai import OpenAI
 from dotenv import load_dotenv
+from utilities.map_tools import search_places_for_date_idea, is_maps_available
 
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
-)
+# Initialize OpenAI client with fallback
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+client = None
+
+if OPENAI_API_KEY:
+    try:
+        client = OpenAI(api_key=OPENAI_API_KEY)
+    except Exception as e:
+        print(f"Error initializing OpenAI client: {str(e)}")
+
+def is_openai_available() -> bool:
+    """Check if OpenAI API is available"""
+    return client is not None
 
 def generate_date_ideas(
     time_available: float,
@@ -18,12 +29,12 @@ def generate_date_ideas(
     vibe: list,
     location_type: list,
     physical_activity: float,
-    partner_likes: str,
-    partner_dislikes: str,
-    partner_hobbies: str,
-    partner_personality: str,
-    self_preferences: str,
-    misc_input: str,
+    partner_likes: str = "",
+    partner_dislikes: str = "",
+    partner_hobbies: str = "",
+    partner_personality: str = "",
+    self_preferences: str = "",
+    misc_input: str = "",
     location: str = ""
 ) -> tuple:
     """
@@ -44,8 +55,19 @@ def generate_date_ideas(
         location (str, optional): User's location (city, state, country)
 
     Returns:
-        tuple: (main_content, timeline_content) - Formatted text containing the date ideas and separate timeline content
+        tuple: (main_content, timeline_content, map_html, place_details) - Formatted text containing the date ideas, timeline content, map HTML, and place details
     """
+    # Check if OpenAI API is available
+    if not is_openai_available():
+        error_message = """
+        <div style="padding: 20px; text-align: center; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+            <h3 style="color: #6c757d;">Date Generator Feature Not Available</h3>
+            <p>The OpenAI API key is not configured. Date generation is disabled.</p>
+            <p>To enable this feature, please add your OpenAI API key to the .env file.</p>
+        </div>
+        """
+        return error_message, "", "", []
+        
     try:
         # Construct the prompt for OpenAI
         prompt = f"""
@@ -53,8 +75,8 @@ def generate_date_ideas(
         
         Time Available: {time_available} hours
         Budget: ${budget}
-        Vibe: {', '.join(vibe)}
-        Location Type: {', '.join(location_type)}
+        Vibe: {', '.join(vibe) if vibe else "Not specified"}
+        Location Type: {', '.join(location_type) if location_type else "Not specified"}
         Physical Activity Level: {physical_activity}/10
         Location: {location if location else "Not specified (provide location-agnostic ideas)"}
         
@@ -137,6 +159,29 @@ def generate_date_ideas(
         timeline_pattern = r'### Timeline:(.*?)(?=###|$)'
         timeline_matches = re.findall(timeline_pattern, content, re.DOTALL)
         
+        # Extract date components for map search
+        date_components = []
+        if location:
+            # Extract activities from timeline
+            activity_pattern = r'(?:- \d+:\d+ [AP]M - \d+:\d+ [AP]M: )([^-]+)(?:- \$\d+)'
+            for timeline in timeline_matches:
+                activities = re.findall(activity_pattern, timeline)
+                date_components.extend([activity.strip() for activity in activities if activity.strip()])
+        
+        # Search for places if location is provided and maps are available
+        map_html = ""
+        place_details = []
+        if location and date_components and is_maps_available():
+            map_html, place_details = search_places_for_date_idea(location, date_components)
+        elif location and date_components and not is_maps_available():
+            map_html = """
+            <div style="padding: 20px; text-align: center; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                <h3 style="color: #6c757d;">Maps Feature Not Available</h3>
+                <p>The Google Maps API key is not configured. Location-based recommendations are disabled.</p>
+                <p>To enable this feature, please add your Google Maps API key to the .env file.</p>
+            </div>
+            """
+        
         if timeline_matches:
             timeline_content = "## Timelines for Date Packages\n\n"
             
@@ -154,10 +199,16 @@ def generate_date_ideas(
             # Remove timeline sections from main content to avoid duplication
             main_content = re.sub(timeline_pattern, '', content)
             
-            return main_content, timeline_content
+            return main_content, timeline_content, map_html, place_details
         
         # If no timeline sections found, return original content
-        return content, ""
+        return content, "", map_html, place_details
     except Exception as e:
-        error_message = f"Error generating date ideas: {str(e)}"
-        return error_message, ""
+        error_message = f"""
+        <div style="padding: 20px; text-align: center; background-color: #fff3f3; border-radius: 8px; border: 1px solid #ffcccb;">
+            <h3 style="color: #d9534f;">Error Generating Date Ideas</h3>
+            <p>{str(e)}</p>
+            <p>Please try again with different inputs or check your API key configuration.</p>
+        </div>
+        """
+        return error_message, "", "", []

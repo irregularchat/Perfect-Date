@@ -9,7 +9,9 @@ services:
       - ./app.py:/app/app.py
       - ./custom.css:/app/custom.css
       - ./utilities:/app/utilities
+      - ./static:/app/static
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
       - PORT=${PORT:-7860}
     restart: unless-stopped 

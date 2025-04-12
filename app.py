@@ -1,7 +1,8 @@
 import os
 import gradio as gr
 from dotenv import load_dotenv
-from utilities.openai_tools import generate_date_ideas
+from utilities.openai_tools import generate_date_ideas, is_openai_available
+from utilities.map_tools import is_maps_available
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +30,28 @@ with gr.Blocks(
     
     gr.Markdown("# 💕 Perfect Date Generator")
     gr.Markdown("Enter your preferences and get personalized date ideas!")
+    
+    # Add API key status notice
+    api_status_html = ""
+    if not is_openai_available():
+        api_status_html += """
+        <div style="padding: 15px; margin-bottom: 20px; background-color: #fff3f3; border-radius: 8px; border: 1px solid #ffcccb;">
+            <h3 style="color: #d9534f; margin-top: 0;"><i class="fas fa-exclamation-triangle"></i> OpenAI API Key Missing</h3>
+            <p>The OpenAI API key is not configured. Date generation will not work.</p>
+            <p>Please add your OpenAI API key to the .env file to enable date generation.</p>
+        </div>
+        """
+    if not is_maps_available():
+        api_status_html += """
+        <div style="padding: 15px; margin-bottom: 20px; background-color: #fff3f3; border-radius: 8px; border: 1px solid #ffcccb;">
+            <h3 style="color: #d9534f; margin-top: 0;"><i class="fas fa-exclamation-triangle"></i> Google Maps API Key Missing</h3>
+            <p>The Google Maps API key is not configured. Location-based recommendations will not work.</p>
+            <p>Please add your Google Maps API key to the .env file to enable location features.</p>
+        </div>
+        """
+    
+    if api_status_html:
+        gr.HTML(api_status_html)
     
     # Main input section with 3 columns
     with gr.Row():
@@ -152,9 +175,58 @@ with gr.Blocks(
         gr.Markdown("### Timeline of Events")
         timeline_output = gr.Markdown(elem_classes="timeline-container")
     
+    # Map and place info section
+    with gr.Row(elem_classes="map-section") as map_row:
+        map_section = gr.Markdown("### Map & Place Information")
+        with gr.Column(scale=1):
+            map_output = gr.HTML(label="Map", elem_classes="map-container")
+        with gr.Column(scale=1):
+            place_info = gr.HTML(label="Place Information", elem_classes="place-info-container")
+    
     # Set up the click event
+    def handle_generate(
+        time_available, budget, vibe, location_type, physical_activity, 
+        partner_likes, partner_dislikes, partner_hobbies, partner_personality,
+        self_preferences, misc_input, location
+    ):
+        main_content, timeline_content, map_html, place_details = generate_date_ideas(
+            time_available, budget, vibe, location_type, physical_activity, 
+            partner_likes, partner_dislikes, partner_hobbies, partner_personality,
+            self_preferences, misc_input, location
+        )
+        
+        # Format place details for display
+        place_info_html = ""
+        if place_details:
+            place_info_html = "<h3>Recommended Places</h3>"
+            for place in place_details:
+                name = place.get('name', 'Unknown Place')
+                address = place.get('formatted_address', place.get('vicinity', 'No address available'))
+                rating = place.get('rating', 'No rating')
+                
+                place_info_html += f"""
+                <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <h4>{name}</h4>
+                    <p><strong>Address:</strong> {address}</p>
+                    <p><strong>Rating:</strong> {rating}/5</p>
+                """
+                
+                # Add opening hours if available
+                if 'opening_hours' in place and 'weekday_text' in place['opening_hours']:
+                    place_info_html += "<p><strong>Opening Hours:</strong></p><ul>"
+                    for day in place['opening_hours']['weekday_text']:
+                        place_info_html += f"<li>{day}</li>"
+                    place_info_html += "</ul>"
+                
+                place_info_html += "</div>"
+        
+        # Set map section visibility based on if we have map content
+        map_section_visible = bool(location and map_html)
+        
+        return main_content, timeline_content, map_html, place_info_html
+    
     generate_button.click(
-        fn=generate_date_ideas,
+        fn=handle_generate,
         inputs=[
             time_available, 
             budget, 
@@ -169,7 +241,7 @@ with gr.Blocks(
             misc_input,
             location
         ],
-        outputs=[output, timeline_output]
+        outputs=[output, timeline_output, map_output, place_info]
     )
     
     gr.Markdown("### How to use")

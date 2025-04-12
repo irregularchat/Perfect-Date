@@ -2,3 +2,5 @@ gradio
 openai
 python-dotenv
 requests
+googlemaps
+folium
