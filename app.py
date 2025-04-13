@@ -85,9 +85,9 @@ with gr.Blocks(
     css=custom_css
 ) as app:
     # Add the logo at the top
-    logo_path = "static/images/logo.png"
-    with gr.Row(elem_classes="logo-container-row"):
-        gr.Image(value=logo_path, show_label=False, container=False, height=100, width=100, elem_classes="centered-logo")
+    # logo_path = "static/images/logo.png"
+    # with gr.Row(elem_classes="logo-container-row"):
+    #     gr.Image(value=logo_path, show_label=False, container=False, height=100, width=100, elem_classes="centered-logo")
     
     gr.Markdown("# Perfect Event Generator")
     gr.Markdown("Enter your preferences and get personalized event ideas!")
@@ -146,6 +146,65 @@ with gr.Blocks(
                 info="Slide to select how many hours you have available",
                 elem_classes="mobile-friendly-slider"
             )
+            
+            # Add date and time preference options
+            with gr.Accordion("Specific Date/Time Preferences (Optional)", open=False):
+                time_preference = gr.Dropdown(
+                    label="When would you like to go?",
+                    choices=[
+                        "Anytime",
+                        "Today",
+                        "Tomorrow", 
+                        "This weekend",
+                        "Next weekend",
+                        "Anytime in the next 7 days",
+                        "Anytime in the next 30 days",
+                        "Specific dates"
+                    ],
+                    value="Anytime",
+                    elem_classes="mobile-friendly-dropdown"
+                )
+                
+                with gr.Group(visible=False) as specific_dates_group:
+                    specific_date1 = gr.Textbox(
+                        label="Date Option 1",
+                        placeholder="e.g., Friday, April 19",
+                        elem_classes="mobile-friendly-input"
+                    )
+                    specific_time1 = gr.Textbox(
+                        label="Time Option 1",
+                        placeholder="e.g., Evening, 7 PM, Afternoon",
+                        elem_classes="mobile-friendly-input"
+                    )
+                    
+                    specific_date2 = gr.Textbox(
+                        label="Date Option 2 (Optional)",
+                        placeholder="e.g., Saturday, April 20",
+                        elem_classes="mobile-friendly-input"
+                    )
+                    specific_time2 = gr.Textbox(
+                        label="Time Option 2 (Optional)",
+                        placeholder="e.g., Morning, All day, 1-5 PM",
+                        elem_classes="mobile-friendly-input"
+                    )
+                    
+                    specific_date3 = gr.Textbox(
+                        label="Date Option 3 (Optional)",
+                        placeholder="e.g., Sunday, April 21",
+                        elem_classes="mobile-friendly-input"
+                    )
+                    specific_time3 = gr.Textbox(
+                        label="Time Option 3 (Optional)",
+                        placeholder="e.g., Lunch time, 2-4 PM",
+                        elem_classes="mobile-friendly-input"
+                    )
+                
+                # Add JavaScript handler to show/hide specific dates based on dropdown
+                time_preference.change(
+                    fn=lambda x: {"visible": x == "Specific dates"},
+                    inputs=[time_preference],
+                    outputs=[specific_dates_group]
+                )
             
             budget = gr.Slider(
                 label="Budget ($)",
@@ -382,10 +441,36 @@ with gr.Blocks(
     
     # Set up the click event
     def handle_generate(
-        event_type, time_available, budget, vibe, location_type, physical_activity, 
+        event_type, time_available, time_preference, specific_date1, specific_time1, 
+        specific_date2, specific_time2, specific_date3, specific_time3,
+        budget, vibe, location_type, physical_activity, 
         partner_likes, partner_dislikes, partner_hobbies, partner_personality,
         self_preferences, misc_input, location
     ):
+        # Process date/time preferences
+        date_time_info = ""
+        if time_preference != "Anytime":
+            date_time_info = f"Time Preference: {time_preference}\n"
+            
+            if time_preference == "Specific dates":
+                date_time_info += "Preferred Dates:\n"
+                
+                if specific_date1 and specific_time1:
+                    date_time_info += f"- {specific_date1} at {specific_time1}\n"
+                
+                if specific_date2 and specific_time2:
+                    date_time_info += f"- {specific_date2} at {specific_time2}\n"
+                    
+                if specific_date3 and specific_time3:
+                    date_time_info += f"- {specific_date3} at {specific_time3}\n"
+        
+        # If user provided date/time preferences, add to misc_input
+        if date_time_info:
+            if misc_input:
+                misc_input += "\n\n" + date_time_info
+            else:
+                misc_input = date_time_info
+        
         main_content, timeline_content, map_html, place_details = generate_event_ideas(
             time_available, budget, vibe, location_type, physical_activity, 
             partner_likes, partner_dislikes, partner_hobbies, partner_personality,
@@ -469,6 +554,13 @@ with gr.Blocks(
         inputs=[
             event_type,
             time_available, 
+            time_preference,
+            specific_date1,
+            specific_time1,
+            specific_date2,
+            specific_time2,
+            specific_date3,
+            specific_time3,
             budget, 
             vibe, 
             location_type, 
@@ -488,6 +580,9 @@ with gr.Blocks(
     gr.Markdown("""
     1. Select the type of event (casual dating, married, first date, etc.)
     2. Adjust the slider for your available time (in hours)
+    3. **[OPTIONAL] Specify date and time preferences:**
+       - Choose a general time frame like "This weekend" or "Next weekend"
+       - OR select "Specific dates" to enter up to 3 exact date and time options
     4. Set your budget using the slider (up to $500)
     5. Pick the vibe(s) you're looking for
     6. Select preferred location type(s)
