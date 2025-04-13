@@ -1,17 +1,28 @@
-# Perfect Date Generator
+# Perfect Event Generator
+This app is made for those situations where you can't decide what to do or don't know where to start planning for a date or event.
 
-A web application that generates personalized date ideas based on time available, budget, and preferences.
+An open source web application that generates personalized event ideas based on time available, budget, and preferences for various occasions including dates, outings, meetups, and more.
 
 ## Features
 
-- Select time available (2 hours, 4 hours, all day)
-- Choose budget ($20, $50, $100+)
-- Pick vibes (chill, adventurous, romantic, nerdy, outdoorsy)
-- Select location types (restaurant, activity, nature, at-home)
-- Choose level of physical activity (low, moderate, high)
-- Provide partner preferences
-- Generate top 3 date ideas with cost, time, and why they're a good fit
-- Interactive maps and place recommendations for date locations (with Google Maps API)
+- Select event type (First Date, Casual Dating, Married Date, Hookup, Night with the Girls/Boys, Family Outing, Afterwork Meetup)
+- Choose time available (1-12 hours)
+- Set flexible date/time preferences:
+  - General timeframes (Today, Tomorrow, This weekend, Next weekend)
+  - Specific dates (up to 3 date/time combinations)
+- Adjust budget ($0-$500)
+- Pick vibes (Romantic, Adventurous, Relaxed, Fun, Cultural, Intellectual, Sophisticated, Energetic)
+- Select location types (Indoors, Outdoors, Urban, Nature, Beach, Mountains, Countryside)
+- Choose level of physical activity (1-10 scale)
+- Tailor participant preferences based on event type (automatically adjusts fields for partners, spouses, friends, colleagues, etc.)
+- Generate top 3 event ideas with cost, time, and why they're a good fit
+- View detailed timelines for each suggested event
+- Interactive maps with place markers for recommended locations
+- Clickable place recommendations with detailed information:
+  - Business hours, ratings, and reviews
+  - Direct links to Google Maps
+  - Contact information and websites
+  - Current open/closed status
 
 ## Standard Installation
 
@@ -128,6 +139,73 @@ The date generator uses Google Maps API for location-based recommendations. To e
    ```
    - This will verify that all necessary APIs are accessible with your key
    - If you see any errors, check the troubleshooting section below
+
+## How to Use the Perfect Event Generator
+
+### 1. Choose Your Event Type
+
+The application supports multiple event types, each with tailored recommendations:
+- **First Date**: Low-pressure, public activities ideal for getting to know someone
+- **Casual Dating**: Fun, engaging activities for early relationship stages
+- **Married Date**: Options to break routine and rekindle romance
+- **Hookup**: Suggestions for intimate, flirty settings
+- **Night with the Girls/Boys**: Group-friendly activities for friends
+- **Family Outing**: All-ages appropriate activities
+- **Afterwork Meetup**: Professional and casual options for colleagues
+
+The interface will dynamically adjust based on your selection, changing terminology from "partner" to "spouse," "friends," "family," etc.
+
+### 2. Set Time and Date Preferences
+
+- **Time Available**: Use the slider to specify how many hours you have (1-12 hours)
+- **Date/Time Preferences**: Click the dropdown to choose from options like:
+  - "Anytime" (default)
+  - "Today"
+  - "Tomorrow"
+  - "This weekend"
+  - "Next weekend"
+  - "Anytime in the next 7 days"
+  - "Specific dates"
+- If you select "Specific dates," you can enter up to three specific date/time combinations
+  - Example: "Friday, April 19" and "Evening" or "Saturday, April 20" and "2-5 PM"
+
+### 3. Configure Additional Parameters
+
+- **Budget**: Set your spending limit (up to $500)
+- **Vibe**: Select multiple options like Romantic, Fun, Cultural, etc.
+- **Location Type**: Choose settings such as Indoors, Outdoors, Urban, Nature, etc.
+- **Physical Activity Level**: Set from 1 (very low) to 10 (very high)
+- **Location**: Enter your city/location for place-specific recommendations
+
+### 4. Customize Participant Preferences
+
+Based on your event type, fill in relevant preferences:
+- What they like/dislike
+- Interests/hobbies
+- Personality traits
+- Your own preferences and any additional information
+
+### 5. Generate and Explore Recommendations
+
+After clicking "Generate Event Ideas," you'll receive:
+
+- **Three Event Ideas**: Each with a descriptive title, estimated cost, duration, and explanation
+- **Interactive Timelines**: Detailed breakdown of each recommendation with times and activities
+- **Map View**: If you provided a location, you'll see a map with markers for recommended places
+- **Place Details**: Click on place names to view:
+  - Business information (hours, contact info, website)
+  - Ratings and reviews
+  - Current open/closed status
+  - Direct links to view on Google Maps
+
+### 6. Interacting with Place Recommendations
+
+- **Click Place Names**: In the timeline view, place names are clickable links
+- **View Details**: See ratings, reviews, operating hours, and contact information
+- **Map Integration**: Click "View on Google Maps" to get directions or save locations
+- **Website Links**: Direct access to official websites when available
+
+By providing specific dates/times and location information, you'll receive highly tailored recommendations that consider factors like operating hours, seasonal activities, and local options.
 
 ## Troubleshooting API Keys
 
