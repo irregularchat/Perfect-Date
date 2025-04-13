@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utilities.openai_tools import is_openai_available, generate_date_ideas
+from utilities.openai_tools import is_openai_available, generate_date_ideas, generate_event_ideas, mock_openai_api
 
 
 class TestOpenAITools(unittest.TestCase):
@@ -275,6 +275,49 @@ class TestOpenAITools(unittest.TestCase):
         self.assertIn("Timeline for Sunset Picnic", timeline_content)
         self.assertEqual(map_html, "")
         self.assertEqual(place_details, [])
+
+
+def test_generate_date_ideas_mock():
+    """Test that the generate_date_ideas function works with a mock."""
+    # Set mock mode
+    mock_openai_api(True)
+    
+    # Call the function with mock enabled
+    main_content, timeline_content, map_html, place_details = generate_date_ideas(
+        4, 100, ["Romantic", "Adventurous"], ["Restaurant", "Activity"],
+        3, "likes nature", "dislikes crowds", "reading, hiking", "outgoing",
+        "prefers evenings", "misc info", "Seattle, WA", "Casual Dating", 2
+    )
+    
+    # Check that mock content was returned
+    assert "Date Idea:" in main_content
+    assert "Timeline" in timeline_content
+    assert map_html != ""
+    assert len(place_details) > 0
+    
+    # Reset mock mode
+    mock_openai_api(False)
+
+def test_generate_event_ideas_mock():
+    """Test that the generate_event_ideas function works with a mock."""
+    # Set mock mode
+    mock_openai_api(True)
+    
+    # Call the function with mock enabled
+    main_content, timeline_content, map_html, place_details = generate_event_ideas(
+        4, 100, ["Fun", "Educational"], ["Outdoor", "Indoor"],
+        3, "likes nature", "dislikes crowds", "reading, hiking", "outgoing",
+        "prefers afternoons", "misc info", "Seattle, WA", "Friends Gathering", 3
+    )
+    
+    # Check that mock content was returned
+    assert "Event Idea:" in main_content
+    assert "Timeline" in timeline_content
+    assert map_html != ""
+    assert len(place_details) > 0
+    
+    # Reset mock mode
+    mock_openai_api(False)
 
 
 if __name__ == '__main__':
