@@ -1,7 +1,7 @@
 import os
 import gradio as gr
 from dotenv import load_dotenv
-from utilities.openai_tools import generate_date_ideas, is_openai_available
+from utilities.openai_tools import generate_date_ideas, is_openai_available, generate_event_ideas
 from utilities.map_tools import is_maps_available
 
 # Load environment variables
@@ -26,14 +26,61 @@ custom_css += """
 }
 """
 
+# Add custom CSS for better rendering
+css = """
+.timeline-output h2 {
+    color: #4f46e5;
+    border-bottom: 2px solid #818cf8;
+    padding-bottom: 10px;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    display: block;
+    width: 100%;
+}
+
+.timeline-item {
+    margin-bottom: 30px;
+}
+
+.timeline-content {
+    background-color: #f9fafb;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.timeline-entry {
+    margin-bottom: 12px;
+    padding-left: 15px;
+    border-left: 3px solid #4f46e5;
+}
+
+.map-output {
+    width: 100%;
+    height: 400px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.place-info {
+    padding: 20px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+"""
+
 # Define Gradio interface
 with gr.Blocks(
-    title="Perfect Date Generator", 
-    theme=gr.themes.Soft(
-        primary_hue="pink",
-        secondary_hue="teal",
-        neutral_hue="gray",
-        text_size="lg"
+    title="Perfect Event Generator", 
+    theme=gr.themes.Default(
+        primary_hue="indigo",
+        secondary_hue="blue",
+        neutral_hue="slate",
+        font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"],
     ), 
     css=custom_css
 ) as app:
@@ -42,8 +89,8 @@ with gr.Blocks(
     with gr.Row(elem_classes="logo-container-row"):
         gr.Image(value=logo_path, show_label=False, container=False, height=100, width=100, elem_classes="centered-logo")
     
-    gr.Markdown("# 💕 Perfect Date Generator")
-    gr.Markdown("Enter your preferences and get personalized date ideas!")
+    gr.Markdown("# Perfect Event Generator")
+    gr.Markdown("Enter your preferences and get personalized event ideas!")
     
     # Add API key status notice
     api_status_html = ""
@@ -51,8 +98,8 @@ with gr.Blocks(
         api_status_html += """
         <div style="padding: 15px; margin-bottom: 20px; background-color: #fff3f3; border-radius: 8px; border: 1px solid #ffcccb;">
             <h3 style="color: #d9534f; margin-top: 0;"><i class="fas fa-exclamation-triangle"></i> OpenAI API Key Missing</h3>
-            <p>The OpenAI API key is not configured. Date generation will not work.</p>
-            <p>Please add your OpenAI API key to the .env file to enable date generation.</p>
+            <p>The OpenAI API key is not configured. Event generation will not work.</p>
+            <p>Please add your OpenAI API key to the .env file to enable event generation.</p>
         </div>
         """
     if not is_maps_available():
@@ -72,22 +119,22 @@ with gr.Blocks(
         # First column - Basic preferences
         with gr.Column(scale=1):
             gr.Markdown("### Basic Preferences")
-            relationship_type = gr.Dropdown(
-                label="Type of Date",
-                choices=["Casual Dating", "Married", "First Date", "Hook Up", "Night with the Girls", "Night with the Boys", "Afterwork"],
+            
+            # Add event type selection
+            event_type = gr.Dropdown(
+                label="Event Type",
+                choices=[
+                    "First Date", 
+                    "Casual Dating", 
+                    "Married Date", 
+                    "Night with the Girls", 
+                    "Night with the Boys",
+                    "Family Outing",
+                    "Afterwork Meetup",
+                    "Hookup"
+                ],
                 value="Casual Dating",
                 elem_classes="mobile-friendly-dropdown"
-            )
-            
-            # Conditionally show number of participants for group activities
-            participants = gr.Number(
-                label="Number of Participants",
-                value=2,
-                minimum=1,
-                maximum=20,
-                step=1,
-                visible=False,
-                elem_classes="mobile-friendly-input"
             )
             
             time_available = gr.Slider(
@@ -95,23 +142,23 @@ with gr.Blocks(
                 minimum=1,
                 maximum=12,
                 value=4,
-                step=1,
+                step=0.5,
                 info="Slide to select how many hours you have available",
                 elem_classes="mobile-friendly-slider"
             )
             
             budget = gr.Slider(
                 label="Budget ($)",
-                minimum=20,
+                minimum=0,
                 maximum=500,
-                value=50,
+                value=100,
                 step=10,
                 info="Slide to select your budget in dollars",
                 elem_classes="mobile-friendly-slider"
             )
             
             physical_activity = gr.Slider(
-                label="Level of Physical Activity",
+                label="Physical Activity Level (1-10)",
                 minimum=1,
                 maximum=10,
                 value=5,
@@ -121,72 +168,77 @@ with gr.Blocks(
             )
             
             vibe = gr.Dropdown(
-                label="Vibe",
-                choices=["Chill", "Adventurous", "Romantic", "Nerdy", "Outdoorsy"],
+                label="Desired Vibe (select multiple)",
+                choices=["Romantic", "Adventurous", "Relaxed", "Fun", "Cultural", "Intellectual", "Sophisticated", "Energetic"],
                 multiselect=True,
-                value=["Romantic"],
+                value=["Fun", "Relaxed"],
                 elem_classes="mobile-friendly-dropdown"
             )
             
             location_type = gr.Dropdown(
-                label="Location Type",
-                choices=["Restaurant", "Activity", "Nature", "At-home"],
+                label="Location Type (select multiple)",
+                choices=["Indoors", "Outdoors", "Urban", "Nature", "Beach", "Mountains", "Countryside"],
                 multiselect=True,
-                value=["Restaurant", "Activity"],
+                value=["Indoors", "Outdoors"],
                 elem_classes="mobile-friendly-dropdown"
             )
             
             location = gr.Textbox(
-                label="Your Location",
-                placeholder="E.g., Seattle, WA, USA",
+                label="Your Location (optional, for place recommendations)",
+                placeholder="e.g., San Francisco, CA",
                 info="Enter your city, state, country for location-specific suggestions and maps",
                 elem_classes="mobile-friendly-input location-input"
             )
         
-        # Second column - Partner preferences
-        with gr.Column(scale=1):
-            gr.Markdown("### Partner Preferences (Optional)")
+        # Second column - Partner preferences (dynamic label based on event type)
+        with gr.Column(scale=1, elem_id="partner-preferences-column"):
+            partner_prefs_markdown = gr.Markdown("### Participant Preferences", elem_id="prefs_header")
+            
             partner_likes = gr.Textbox(
-                label="What does your partner like?",
-                placeholder="E.g., Art, music, specific cuisines, sports...",
+                label="What do they like?",
+                placeholder="e.g., Italian food, live music, art galleries",
                 lines=2,
-                elem_classes="mobile-friendly-input"
+                elem_classes="mobile-friendly-input",
+                elem_id="likes_field"
             )
             
             partner_dislikes = gr.Textbox(
-                label="What does your partner dislike?",
-                placeholder="E.g., Crowds, certain foods, activities they avoid...",
+                label="What do they dislike?",
+                placeholder="e.g., crowds, spicy food, horror movies",
                 lines=2,
-                elem_classes="mobile-friendly-input"
+                elem_classes="mobile-friendly-input",
+                elem_id="dislikes_field"
             )
             
             partner_hobbies = gr.Textbox(
-                label="What are your partner's hobbies?",
-                placeholder="E.g., Photography, hiking, cooking, gaming...",
+                label="Interests/Hobbies",
+                placeholder="e.g., hiking, photography, board games",
                 lines=2,
-                elem_classes="mobile-friendly-input"
+                elem_classes="mobile-friendly-input",
+                elem_id="hobbies_field"
             )
             
             partner_personality = gr.Textbox(
-                label="Describe your partner's personality",
-                placeholder="E.g., Introverted, adventurous, detail-oriented...",
+                label="Personality traits",
+                placeholder="e.g., introverted, adventurous, analytical",
                 lines=2,
-                elem_classes="mobile-friendly-input"
+                elem_classes="mobile-friendly-input",
+                elem_id="personality_field"
             )
         
         # Third column - Your preferences and misc
         with gr.Column(scale=1):
-            gr.Markdown("### Your Preferences (Optional)")
+            gr.Markdown("### Your Preferences & Additional Info")
             self_preferences = gr.Textbox(
-                label="What do you enjoy?",
-                placeholder="E.g., Your interests, activities you'd like to try...",
+                label="Your Preferences (optional)",
+                placeholder="e.g., I prefer casual settings, would like to avoid loud places",
                 lines=2,
                 elem_classes="mobile-friendly-input"
             )
             
             misc_input = gr.Textbox(
-                label="Anything else to consider?",
-                placeholder="E.g., Special occasions, specific requirements, constraints...",
+                label="Any Other Details (optional)",
+                placeholder="e.g., special occasion, accessibility requirements, etc.",
                 lines=2,
                 elem_classes="mobile-friendly-input"
             )
@@ -196,36 +248,148 @@ with gr.Blocks(
             gr.Markdown("<br>")
             
             # Generate button at the bottom of the third column
-            generate_button = gr.Button("Generate Date Ideas", variant="primary", elem_classes="generate-btn", size="lg")
+            generate_button = gr.Button("Generate Event Ideas", variant="primary", elem_classes="generate-btn", size="lg")
     
-    # Output section
-    with gr.Row():
-        output = gr.Markdown(label="Your Perfect Date Ideas", elem_classes="output-container")
-    
-    # Timeline section - making it widescreen
-    with gr.Row(elem_classes="timeline-section full-width"):
-        timeline_output = gr.HTML(elem_classes="timeline-container")
-    
-    # Map and place info section - full width with no unnecessary containers
-    with gr.Row(elem_classes="map-section full-width") as map_row:
-        gr.HTML("<h2 style='color:#ff6b6b; border-bottom:2px solid #ffe66d; padding-bottom:15px; margin-top:30px; margin-bottom:25px; font-size:24px; font-weight:bold; width:100%; text-align:left;'>Map & Place Information</h2>", elem_classes="full-width")
+    # Create the layout for outputs
+    with gr.Row() as output_container:
+        # Main content on the left (2/3 width)
+        with gr.Column(scale=2):
+            output = gr.Markdown(elem_classes=["output-text"], visible=True)
         
-        # Map container with absolutely no label
-        map_output = gr.HTML(elem_classes="map-container full-width", show_label=False)
+        # Timeline on the right (1/3 width)
+        with gr.Column(scale=1):
+            timeline_output = gr.HTML(elem_classes=["timeline-output"])
+    
+    # Map in full width
+    with gr.Row() as map_container:
+        map_output = gr.HTML(elem_classes=["map-output"])
+    
+    # Place details in full width
+    with gr.Row() as place_container:
+        place_info = gr.HTML(elem_classes=["place-info"], show_label=False)
+    
+    # Add the CSS to the page
+    gr.HTML(f"<style>{css}</style>")
+    
+    # Add the JavaScript
+    gr.HTML(f"""<script>
+    function updateUIForEventType(eventType) {{
+        // Get elements
+        const partnerColumn = document.getElementById('partner-preferences-column');
+        const partnerHeader = document.getElementById('prefs_header');
+        const partnerLikes = document.getElementById('likes_field');
+        const partnerDislikes = document.getElementById('dislikes_field');
+        const partnerHobbies = document.getElementById('hobbies_field');
+        const partnerPersonality = document.getElementById('personality_field');
         
-        # Place info container with absolutely no label
-        place_info = gr.HTML(elem_classes="place-info-container full-width", show_label=False)
+        // Update headers and placeholders based on event type
+        if (eventType === "Family Outing") {{
+            partnerHeader.textContent = "Family Preferences";
+            partnerLikes.querySelector('label').textContent = "What does your family like?";
+            partnerDislikes.querySelector('label').textContent = "What does your family dislike?";
+            partnerHobbies.querySelector('label').textContent = "Family interests/activities";
+            partnerPersonality.querySelector('label').textContent = "Family dynamic";
+            
+            partnerLikes.querySelector('textarea').placeholder = "E.g., Parks, family-friendly restaurants...";
+            partnerDislikes.querySelector('textarea').placeholder = "E.g., Long wait times, very noisy places...";
+            partnerHobbies.querySelector('textarea').placeholder = "E.g., Board games, movie nights, hiking...";
+            partnerPersonality.querySelector('textarea').placeholder = "E.g., Kids ages, energy levels, interests...";
+        }} 
+        else if (eventType === "Night with the Girls" || eventType === "Night with the Boys") {{
+            partnerHeader.textContent = "Group Preferences";
+            partnerLikes.querySelector('label').textContent = "What do your friends like?";
+            partnerDislikes.querySelector('label').textContent = "What do your friends dislike?";
+            partnerHobbies.querySelector('label').textContent = "Group interests/activities";
+            partnerPersonality.querySelector('label').textContent = "Group dynamic";
+            
+            partnerLikes.querySelector('textarea').placeholder = "E.g., Wine, spa days, shopping...";
+            partnerDislikes.querySelector('textarea').placeholder = "E.g., Noisy venues, long walks...";
+            partnerHobbies.querySelector('textarea').placeholder = "E.g., Yoga, book clubs, cooking...";
+            partnerPersonality.querySelector('textarea').placeholder = "E.g., Creative, social, energetic...";
+        }}
+        else if (eventType === "Afterwork Meetup") {{
+            partnerHeader.textContent = "Colleague Preferences";
+            partnerLikes.querySelector('label').textContent = "What do your colleagues like?";
+            partnerDislikes.querySelector('label').textContent = "What do your colleagues dislike?";
+            partnerHobbies.querySelector('label').textContent = "Group interests/activities";
+            partnerPersonality.querySelector('label').textContent = "Work relationships";
+            
+            partnerLikes.querySelector('textarea').placeholder = "E.g., Happy hours, casual dining...";
+            partnerDislikes.querySelector('textarea').placeholder = "E.g., Work talk, formal settings...";
+            partnerHobbies.querySelector('textarea').placeholder = "E.g., Networking, team sports...";
+            partnerPersonality.querySelector('textarea').placeholder = "E.g., Mix of personalities, department culture...";
+        }}
+        else if (eventType === "Married Date") {{
+            partnerHeader.textContent = "Spouse Preferences";
+            partnerLikes.querySelector('label').textContent = "What does your spouse like?";
+            partnerDislikes.querySelector('label').textContent = "What does your spouse dislike?";
+            partnerHobbies.querySelector('label').textContent = "Spouse's interests/hobbies";
+            partnerPersonality.querySelector('label').textContent = "Spouse's personality traits";
+            
+            partnerLikes.querySelector('textarea').placeholder = "E.g., Fine dining, quiet evenings...";
+            partnerDislikes.querySelector('textarea').placeholder = "E.g., Over-planned activities, crowds...";
+            partnerHobbies.querySelector('textarea').placeholder = "E.g., Gardening, reading, crafts...";
+            partnerPersonality.querySelector('textarea').placeholder = "E.g., Thoughtful, intellectual, homebody...";
+        }}
+        else if (eventType === "Hookup") {{
+            partnerHeader.textContent = "Partner Preferences";
+            partnerLikes.querySelector('label').textContent = "What do they like?";
+            partnerDislikes.querySelector('label').textContent = "What do they dislike?";
+            partnerHobbies.querySelector('label').textContent = "Interests/Turn-ons";
+            partnerPersonality.querySelector('label').textContent = "Personality/Vibe";
+            
+            partnerLikes.querySelector('textarea').placeholder = "E.g., Dancing, specific drinks, music...";
+            partnerDislikes.querySelector('textarea').placeholder = "E.g., Small talk, crowded venues...";
+            partnerHobbies.querySelector('textarea').placeholder = "E.g., Spontaneity, confidence, physical touch...";
+            partnerPersonality.querySelector('textarea').placeholder = "E.g., Flirty, laid-back, adventurous...";
+        }}
+        else {{
+            // Default for casual dating, first date
+            partnerHeader.textContent = "Partner Preferences";
+            partnerLikes.querySelector('label').textContent = "What does your partner like?";
+            partnerDislikes.querySelector('label').textContent = "What does your partner dislike?";
+            partnerHobbies.querySelector('label').textContent = "Partner's interests/hobbies";
+            partnerPersonality.querySelector('label').textContent = "Partner's personality traits";
+            
+            partnerLikes.querySelector('textarea').placeholder = "E.g., Art, music, specific cuisines, sports...";
+            partnerDislikes.querySelector('textarea').placeholder = "E.g., Crowds, certain foods, activities they avoid...";
+            partnerHobbies.querySelector('textarea').placeholder = "E.g., Photography, hiking, cooking, gaming...";
+            partnerPersonality.querySelector('textarea').placeholder = "E.g., Introverted, adventurous, detail-oriented...";
+        }}
+    }}
+    
+    // Set up the event listener once the DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {{
+        setTimeout(function() {{
+            const dropdown = document.querySelector('select[data-testid="dropdown"]');
+            if (dropdown) {{
+                dropdown.addEventListener('change', function() {{
+                    updateUIForEventType(this.value);
+                }});
+                // Initial update
+                updateUIForEventType("Casual Dating");
+            }}
+        }}, 1000);
+    }});
+    </script>""")
+    
+    # Set up event handler for event type changes without the problematic _js parameter
+    event_type.change(
+        fn=lambda x: None,  # Dummy function that doesn't do anything in Python
+        inputs=[event_type],
+        outputs=[]
+    )
     
     # Set up the click event
     def handle_generate(
-        relationship_type, participants, time_available, budget, vibe, location_type, physical_activity, 
+        event_type, time_available, budget, vibe, location_type, physical_activity, 
         partner_likes, partner_dislikes, partner_hobbies, partner_personality,
         self_preferences, misc_input, location
     ):
-        main_content, timeline_content, map_html, place_details = generate_date_ideas(
+        main_content, timeline_content, map_html, place_details = generate_event_ideas(
             time_available, budget, vibe, location_type, physical_activity, 
             partner_likes, partner_dislikes, partner_hobbies, partner_personality,
-            self_preferences, misc_input, location, relationship_type, participants
+            self_preferences, misc_input, location, event_type
         )
         
         # Format place details for display
@@ -303,8 +467,7 @@ with gr.Blocks(
     generate_button.click(
         fn=handle_generate,
         inputs=[
-            relationship_type,
-            participants,
+            event_type,
             time_available, 
             budget, 
             vibe, 
@@ -323,9 +486,8 @@ with gr.Blocks(
     
     gr.Markdown("### How to use")
     gr.Markdown("""
-    1. Select the type of date (casual dating, married, first date, etc.)
-    2. For group activities, specify the number of participants
-    3. Adjust the slider for your available time (in hours)
+    1. Select the type of event (casual dating, married, first date, etc.)
+    2. Adjust the slider for your available time (in hours)
     4. Set your budget using the slider (up to $500)
     5. Pick the vibe(s) you're looking for
     6. Select preferred location type(s)
@@ -334,11 +496,11 @@ with gr.Blocks(
     9. Fill in the optional partner preference fields
     10. Add your own preferences (optional)
     11. Include any miscellaneous information if needed
-    12. Click 'Generate Date Ideas' to get personalized recommendations with timeline and cost breakdown
+    12. Click 'Generate Event Ideas' to get personalized recommendations with timeline and cost breakdown
     """)
     
     # Add footer
-    gr.HTML('<div class="footer">Perfect Date Generator - Created with ❤️</div>')
+    gr.HTML('<div class="footer">Perfect Event Generator - Created with ❤️</div>')
     
     # Add JavaScript to handle conditional visibility of participants field
     gr.HTML("""
