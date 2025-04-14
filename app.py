@@ -26,7 +26,7 @@ custom_css += """
 }
 """
 
-# Add custom CSS for better rendering
+# Add custom CSS for better rendering and dark mode compatibility
 css = """
 .timeline-output h2 {
     color: #4f46e5;
@@ -49,6 +49,7 @@ css = """
     padding: 20px;
     border-radius: 8px;
     border: 1px solid #e5e7eb;
+    color: #111827; /* Ensure dark text on light background */
 }
 
 .timeline-entry {
@@ -70,6 +71,203 @@ css = """
     background-color: #f9fafb;
     border-radius: 8px;
     border: 1px solid #e5e7eb;
+    color: #111827; /* Ensure dark text on light background */
+}
+
+/* Place card styling */
+.recommended-places-header h3 {
+    color: #ff6b6b;
+    font-size: 22px;
+    font-weight: bold;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.place-card {
+    margin-bottom: 25px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.place-name {
+    color: #ff6b6b;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.maps-button {
+    display: inline-block;
+    padding: 6px 12px;
+    background-color: #4285F4;
+    color: white !important;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.website-link {
+    color: #4285F4;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.hours-list {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.hours-list li {
+    margin-bottom: 5px;
+}
+
+.review-box {
+    margin-bottom: 10px;
+    padding: 12px;
+    border-left: 3px solid #ddd;
+    background-color: #f5f5f5;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .timeline-content, .place-info {
+        background-color: #1f2937;
+        color: #f9fafb;
+        border-color: #374151;
+    }
+    
+    .timeline-output h2, .timeline-item h3 {
+        color: #818cf8;
+    }
+    
+    .clickable-place {
+        color: #93c5fd;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+    
+    .place-details {
+        background-color: #1f2937;
+        color: #f9fafb;
+        border: 1px solid #374151;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+    
+    /* Place card dark mode styles */
+    .recommended-places-header h3 {
+        color: #f87171;
+        border-bottom-color: #374151;
+    }
+    
+    .place-card {
+        background-color: #1f2937;
+        color: #f9fafb;
+        border-color: #374151;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    
+    .place-name {
+        color: #f87171;
+    }
+    
+    .website-link {
+        color: #60a5fa;
+    }
+    
+    .review-box {
+        background-color: #374151;
+        border-left-color: #6b7280;
+    }
+    
+    /* Fix for recommendations section */
+    .place-info h3, .place-info h4 {
+        color: #f87171 !important; /* Make headings stand out */
+    }
+    
+    .place-info strong {
+        color: #d1d5db; /* Lighter color for labels */
+    }
+    
+    .place-info p, .place-info li {
+        color: #f9fafb !important; /* Ensure text is visible */
+    }
+    
+    /* Fix for review blocks */
+    .place-info div[style*="background-color:#f5f5f5"] {
+        background-color: #374151 !important;
+        border-left: 3px solid #6b7280 !important;
+    }
+}
+
+/* Always ensure text in generated blocks is visible */
+.output-text {
+    color: currentColor;
+}
+
+/* Main content styles */
+.output-container {
+    background-color: #ffffff;
+    color: #111827;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* Style the event idea headers and text */
+.output-container h1,
+.output-container h2 {
+    color: #4f46e5;
+}
+
+.output-container h3 {
+    color: #6366f1;
+}
+
+/* Make sure links are visible in both modes */
+a, a:visited {
+    color: #3b82f6;
+}
+
+@media (prefers-color-scheme: dark) {
+    a, a:visited {
+        color: #60a5fa;
+    }
+    
+    .output-container {
+        background-color: #1f2937;
+        color: #f9fafb;
+        border: 1px solid #374151;
+    }
+    
+    .output-container h1,
+    .output-container h2 {
+        color: #818cf8;
+    }
+    
+    .output-container h3 {
+        color: #a5b4fc;
+    }
+    
+    /* Override any inline styles that might conflict */
+    .output-container p, 
+    .output-container li, 
+    .output-container span {
+        color: #f9fafb !important;
+    }
+    
+    .output-container strong {
+        color: #e5e7eb !important;
+    }
 }
 """
 
@@ -80,7 +278,9 @@ with gr.Blocks(
         primary_hue="indigo",
         secondary_hue="blue",
         neutral_hue="slate",
+        text_size=gr.themes.sizes.text_md,
         font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"],
+        dark_mode = None  # This will respect the user's system preference for dark mode
     ), 
     css=custom_css
 ) as app:
@@ -481,7 +681,9 @@ with gr.Blocks(
         place_info_html = ""
         if place_details:
             place_info_html = """
-            <h3 style="color:#ff6b6b; font-size:22px; font-weight:bold; border-bottom:1px solid #eee; padding-bottom:10px; margin-top:0; margin-bottom:20px;">Recommended Places</h3>
+            <div class="recommended-places-header">
+                <h3>Recommended Places</h3>
+            </div>
             """
             
             for place in place_details:
@@ -499,18 +701,18 @@ with gr.Blocks(
                         busy_status = "Currently closed"
                 
                 place_info_html += f"""
-                <div style="margin-bottom:25px; padding:20px; border:1px solid #eee; border-radius:8px; background-color:#f9f9f9; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <h4 style="color:#ff6b6b; margin-top:0; margin-bottom:15px; font-size:18px; font-weight:bold;">{name}</h4>
+                <div class="place-card">
+                    <h4 class="place-name">{name}</h4>
                     <p><strong>Address:</strong> {address}</p>
                     <p><strong>Rating:</strong> {rating}/5</p>
                     {f"<p><strong>Status:</strong> {busy_status}</p>" if busy_status else ""}
-                    <p><a href="{maps_url}" target="_blank" style="display:inline-block; padding:6px 12px; background-color:#4285F4; color:white; border-radius:4px; text-decoration:none; font-weight:600; margin-top:8px;">View on Google Maps</a></p>
+                    <p><a href="{maps_url}" target="_blank" class="maps-button">View on Google Maps</a></p>
                 """
                 
                 # Add website if available
                 if place.get('website'):
                     place_info_html += f"""
-                    <p><strong>Website:</strong> <a href="{place['website']}" target="_blank" style="color:#4285F4; text-decoration:none; font-weight:600;">{place['website']}</a></p>
+                    <p><strong>Website:</strong> <a href="{place['website']}" target="_blank" class="website-link">{place['website']}</a></p>
                     """
                 
                 # Add phone if available
@@ -521,9 +723,9 @@ with gr.Blocks(
                 
                 # Add opening hours if available
                 if 'opening_hours' in place and 'weekday_text' in place['opening_hours']:
-                    place_info_html += "<p><strong>Opening Hours:</strong></p><ul style='margin-left:20px; margin-bottom:15px;'>"
+                    place_info_html += "<p><strong>Opening Hours:</strong></p><ul class='hours-list'>"
                     for day in place['opening_hours']['weekday_text']:
-                        place_info_html += f"<li style='margin-bottom:5px;'>{day}</li>"
+                        place_info_html += f"<li>{day}</li>"
                     place_info_html += "</ul>"
                 
                 # Add reviews if available
@@ -536,9 +738,9 @@ with gr.Blocks(
                     time = review.get('relative_time_description', '')
                     
                     place_info_html += f"""
-                    <div style="margin-bottom:10px; padding:12px; border-left:3px solid #ddd; background-color:#f5f5f5; border-radius:0 4px 4px 0;">
+                    <div class="review-box">
                         <p><strong>{author}</strong> - {review_rating}/5 ({time})</p>
-                        <p style="margin-bottom:0;">{text}</p>
+                        <p>{text}</p>
                     </div>
                     """
                 
