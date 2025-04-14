@@ -22,7 +22,33 @@ custom_css += """
 
 .location-input textarea, .location-input input {
     border: 2px solid var(--primary-color) !important;
-    background-color: #fff9f9 !important;
+    background-color: #fff !important;
+    color: #000 !important;
+}
+
+/* Dark mode overrides for location input */
+@media (prefers-color-scheme: dark) {
+    .location-input textarea, .location-input input {
+        background-color: #374151 !important;
+        color: #f9fafb !important;
+        border-color: #818cf8 !important;
+    }
+    
+    .location-input label {
+        color: #818cf8 !important;
+    }
+    
+    /* Fix for all input fields in dark mode */
+    input, textarea, select {
+        background-color: #374151 !important;
+        color: #f9fafb !important;
+        border-color: #4b5563 !important;
+    }
+    
+    /* Make labels more visible */
+    label {
+        color: #e5e7eb !important;
+    }
 }
 """
 
@@ -92,10 +118,11 @@ css = """
     border-radius: 8px;
     background-color: #f9f9f9;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    color: #333; /* Ensure consistent text color */
 }
 
 .place-name {
-    color: #ff6b6b;
+    color: #4ade80; /* Bright green for better visibility */
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 18px;
@@ -122,6 +149,7 @@ css = """
 .hours-list {
     margin-left: 20px;
     margin-bottom: 15px;
+    color: #333; /* Ensure consistent text color */
 }
 
 .hours-list li {
@@ -134,30 +162,43 @@ css = """
     border-left: 3px solid #ddd;
     background-color: #f5f5f5;
     border-radius: 0 4px 4px 0;
+    color: #333; /* Ensure consistent text color */
+}
+
+/* Fix for the View on Google Maps button */
+a.maps-button:hover {
+    background-color: #3367d6;
+    text-decoration: none;
+    color: white !important;
 }
 
 /* Dark mode adjustments */
 @media (prefers-color-scheme: dark) {
+    body {
+        background-color: #111827 !important;
+        color: #f3f4f6 !important;
+    }
+    
     .timeline-content, .place-info {
-        background-color: #1f2937;
-        color: #f9fafb;
-        border-color: #374151;
+        background-color: #1f2937 !important;
+        color: #f3f4f6 !important;
+        border-color: #374151 !important;
     }
     
     .timeline-output h2, .timeline-item h3 {
-        color: #818cf8;
+        color: #818cf8 !important;
     }
     
     .clickable-place {
-        color: #93c5fd;
+        color: #93c5fd !important;
         text-decoration: underline;
         cursor: pointer;
     }
     
     .place-details {
-        background-color: #1f2937;
-        color: #f9fafb;
-        border: 1px solid #374151;
+        background-color: #1f2937 !important;
+        color: #f3f4f6 !important;
+        border: 1px solid #374151 !important;
         padding: 15px;
         border-radius: 8px;
         margin-top: 10px;
@@ -165,47 +206,69 @@ css = """
     
     /* Place card dark mode styles */
     .recommended-places-header h3 {
-        color: #f87171;
-        border-bottom-color: #374151;
+        color: #f87171 !important;
+        border-bottom-color: #374151 !important;
     }
     
     .place-card {
-        background-color: #1f2937;
-        color: #f9fafb;
-        border-color: #374151;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        background-color: #1f2937 !important;
+        color: #f3f4f6 !important;
+        border-color: #374151 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
     }
     
     .place-name {
-        color: #f87171;
+        color: #4ade80 !important; /* Bright green for visibility */
     }
     
     .website-link {
-        color: #60a5fa;
+        color: #60a5fa !important;
     }
     
+    /* Fix hours list in dark mode */
+    .hours-list {
+        color: #f3f4f6 !important;
+    }
+    
+    .hours-list li {
+        color: #f3f4f6 !important;
+    }
+    
+    /* Fix reviews in dark mode */
     .review-box {
-        background-color: #374151;
-        border-left-color: #6b7280;
+        background-color: #374151 !important;
+        border-left-color: #6b7280 !important;
+        color: #f3f4f6 !important;
+    }
+    
+    .review-box p, .review-box strong {
+        color: #f3f4f6 !important;
     }
     
     /* Fix for recommendations section */
     .place-info h3, .place-info h4 {
-        color: #f87171 !important; /* Make headings stand out */
+        color: #4ade80 !important; /* Green headings for better visibility */
     }
     
     .place-info strong {
-        color: #d1d5db; /* Lighter color for labels */
+        color: #d1d5db !important; /* Lighter color for labels */
     }
     
-    .place-info p, .place-info li {
-        color: #f9fafb !important; /* Ensure text is visible */
+    .place-info p, .place-info li, .place-info div {
+        color: #f3f4f6 !important; /* Ensure text is visible */
     }
     
-    /* Fix for review blocks */
-    .place-info div[style*="background-color:#f5f5f5"] {
+    /* Fix all elements with inline styles */
+    [style*="color:#"] {
+        color: #f3f4f6 !important;
+    }
+    
+    [style*="background-color:#f"] {
         background-color: #374151 !important;
-        border-left: 3px solid #6b7280 !important;
+    }
+    
+    [style*="border-color"], [style*="border:"] {
+        border-color: #4b5563 !important;
     }
 }
 
@@ -240,34 +303,114 @@ a, a:visited {
 
 @media (prefers-color-scheme: dark) {
     a, a:visited {
-        color: #60a5fa;
+        color: #60a5fa !important;
     }
     
     .output-container {
-        background-color: #1f2937;
-        color: #f9fafb;
-        border: 1px solid #374151;
+        background-color: #1f2937 !important;
+        color: #f3f4f6 !important;
+        border: 1px solid #374151 !important;
     }
     
     .output-container h1,
     .output-container h2 {
-        color: #818cf8;
+        color: #818cf8 !important;
     }
     
     .output-container h3 {
-        color: #a5b4fc;
+        color: #a5b4fc !important;
     }
     
     /* Override any inline styles that might conflict */
     .output-container p, 
     .output-container li, 
     .output-container span {
-        color: #f9fafb !important;
+        color: #f3f4f6 !important;
     }
     
     .output-container strong {
         color: #e5e7eb !important;
     }
+    
+    /* Fix gradio components in dark mode */
+    .gradio-container {
+        background-color: #111827 !important;
+    }
+    
+    .dark .gr-box, .dark .gr-button, .dark .gr-form, .dark .gr-input, .dark .gr-panel {
+        background-color: #1f2937 !important;
+        color: #f3f4f6 !important;
+    }
+    
+    /* Force all text to white in dark mode */
+    div, p, span, h1, h2, h3, h4, h5, h6, li, label {
+        color: #f3f4f6 !important;
+    }
+    
+    /* Ensure buttons are visible */
+    button {
+        background-color: #4f46e5 !important;
+        color: white !important;
+    }
+}
+
+/* Force dark mode styling for specific problematic elements */
+.footer, .footer * {
+    color: #f3f4f6 !important;
+}
+
+/* Force dark mode on all reviews */
+[id^="place_"] * {
+    color: #f3f4f6 !important;
+    background-color: #374151 !important;
+}
+
+/* Place names in dark mode */
+.place-name, h4[style*="color:#ff6b6b"], h4.place-name {
+    color: #4ade80 !important; /* Bright green for maximum visibility */
+}
+
+/* Force all text within review boxes to be visible */
+div[style*="background-color:#f5f5f5"], 
+div[style*="background-color: #f5f5f5"],
+.review-box {
+    background-color: #374151 !important;
+    border-left: 3px solid #6b7280 !important;
+    color: #f3f4f6 !important;
+}
+
+div[style*="background-color:#f5f5f5"] *, 
+div[style*="background-color: #f5f5f5"] *,
+.review-box * {
+    color: #f3f4f6 !important;
+}
+
+/* Last resort - inject overrides for all elements */
+.place-info div, .place-info p, .place-info span, 
+.place-info li, .place-info a:not(.maps-button) {
+    color: #f3f4f6 !important;
+}
+
+/* Special override for Top Review */
+.place-info p strong:contains("Top Review") {
+    color: #f3f4f6 !important;
+    font-size: 16px !important;
+}
+
+/* Force light text on all cards in dark mode */
+.place-card * {
+    color: #f3f4f6 !important;
+}
+
+/* Ensure strong elements are visible */
+.place-card strong, .place-info strong {
+    color: #e5e7eb !important;
+}
+
+/* Force Google Maps button to remain visible */
+a[href*="maps.google.com"], a[href*="google.com/maps"], .maps-button {
+    color: white !important;
+    background-color: #4285F4 !important;
 }
 """
 
@@ -279,8 +422,7 @@ with gr.Blocks(
         secondary_hue="blue",
         neutral_hue="slate",
         text_size=gr.themes.sizes.text_md,
-        font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"],
-        dark_mode = None  # This will respect the user's system preference for dark mode
+        font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"]
     ), 
     css=custom_css
 ) as app:
@@ -448,6 +590,9 @@ with gr.Blocks(
                 info="Enter your city, state, country for location-specific suggestions and maps",
                 elem_classes="mobile-friendly-input location-input"
             )
+            
+            with gr.Row():
+                gr.Button("📍 Use My Current Location", elem_id="get-location-btn", elem_classes="location-btn")
         
         # Second column - Partner preferences (dynamic label based on event type)
         with gr.Column(scale=1, elem_id="partner-preferences-column"):
@@ -631,6 +776,147 @@ with gr.Blocks(
         }}, 1000);
     }});
     </script>""")
+    
+    # Add JavaScript for geolocation
+    gr.HTML("""
+    <script>
+    function setupGeolocation() {
+        const locationBtn = document.getElementById('get-location-btn');
+        if (locationBtn) {
+            // Remove any existing click handlers to prevent duplicates
+            locationBtn.removeEventListener('click', getLocation);
+            // Add the click handler
+            locationBtn.addEventListener('click', getLocation);
+            console.log('Geolocation button handler set up');
+        } else {
+            console.error('Geolocation button not found');
+        }
+    }
+
+    function getLocation() {
+        console.log('Geolocation requested');
+        if (navigator.geolocation) {
+            // Show loading state
+            const locationBtn = document.getElementById('get-location-btn');
+            const originalText = locationBtn.textContent;
+            locationBtn.textContent = "Getting location...";
+            locationBtn.disabled = true;
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    console.log('Geolocation success:', position);
+                    // Success callback
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    
+                    // Use reverse geocoding to get address from coordinates
+                    reverseGeocode(latitude, longitude);
+                },
+                function(error) {
+                    console.error('Geolocation error:', error);
+                    // Error callback
+                    const locationBtn = document.getElementById('get-location-btn');
+                    locationBtn.textContent = originalText;
+                    locationBtn.disabled = false;
+                    
+                    let errorMessage = "Unable to retrieve your location. ";
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += "Location access was denied. Please check your browser permissions.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += "Location information is unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += "The request to get location timed out.";
+                            break;
+                        case error.UNKNOWN_ERROR:
+                            errorMessage += "An unknown error occurred.";
+                            break;
+                    }
+                    
+                    alert(errorMessage);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    }
+    
+    function reverseGeocode(latitude, longitude) {
+        console.log('Reverse geocoding:', latitude, longitude);
+        // Use a free reverse geocoding service
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Reverse geocoding success:', data);
+                const locationBtn = document.getElementById('get-location-btn');
+                locationBtn.textContent = "📍 Use My Current Location";
+                locationBtn.disabled = false;
+                
+                // Extract location information
+                let location = "";
+                
+                if (data.address) {
+                    const address = data.address;
+                    
+                    // Build location string based on available address components
+                    const components = [];
+                    
+                    // Add city/town/village
+                    if (address.city) components.push(address.city);
+                    else if (address.town) components.push(address.town);
+                    else if (address.village) components.push(address.village);
+                    
+                    // Add state/province
+                    if (address.state) components.push(address.state);
+                    
+                    // Add country
+                    if (address.country) components.push(address.country);
+                    
+                    location = components.join(", ");
+                }
+                
+                if (!location) {
+                    location = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                }
+                
+                // Find the location input field and set its value
+                const locationInputs = document.querySelectorAll('input, textarea');
+                for (let input of locationInputs) {
+                    if (input.placeholder && input.placeholder.includes("San Francisco")) {
+                        input.value = location;
+                        
+                        // Trigger an input event to ensure Gradio recognizes the change
+                        const event = new Event('input', { bubbles: true });
+                        input.dispatchEvent(event);
+                        
+                        break;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("Error during reverse geocoding:", error);
+                const locationBtn = document.getElementById('get-location-btn');
+                locationBtn.textContent = "📍 Use My Current Location";
+                locationBtn.disabled = false;
+                
+                alert("Unable to determine your location address. Please enter it manually.");
+            });
+    }
+
+    // Set up the geolocation button handler when the page loads
+    document.addEventListener('DOMContentLoaded', setupGeolocation);
+    
+    // Also set up the handler after a short delay to ensure Gradio has initialized
+    setTimeout(setupGeolocation, 1000);
+    </script>
+    """)
     
     # Set up event handler for event type changes without the problematic _js parameter
     event_type.change(
