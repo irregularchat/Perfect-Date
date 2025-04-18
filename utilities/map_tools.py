@@ -409,6 +409,7 @@ def create_map(places: List[Dict], center_location: str = None) -> Tuple[str, Li
                 folium.Marker(
                     location=[lat, lng],
                     popup=folium.Popup(popup_content, max_width=300),
+                    icon=folium.Icon(color='lightgray'),
                     tooltip=name
                 ).add_to(m)
                 
@@ -435,6 +436,7 @@ def create_map(places: List[Dict], center_location: str = None) -> Tuple[str, Li
         # Ensure the map is full width and height
         map_html = map_html.replace('width: 100%;', 'width: 100% !important;')
         map_html = map_html.replace('height: 100.0%;', 'height: 400px !important;')
+
         return map_html, valid_places, table_html
     except Exception as e:
         print(f"Error creating map: {str(e)}")
