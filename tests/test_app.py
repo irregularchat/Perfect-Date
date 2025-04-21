@@ -79,6 +79,27 @@ class TestApp(unittest.TestCase):
         self.assertIn("Test Place", place_info_html)
         self.assertIn("123 Test St", place_info_html)
 
+    @patch('app.gr.HTML')
+    def test_geolocation_javascript(self, mock_html):
+        """Test that the geolocation JavaScript is properly included in the app."""
+        # Reset the mock to clear any previous calls
+        mock_html.reset_mock()
+        
+        # Import the app again to trigger the HTML creation with geolocation script
+        import importlib
+        importlib.reload(app)
+        
+        # Check that the HTML component was called with geolocation script
+        geolocation_calls = [call for call in mock_html.call_args_list if 'function setupGeolocation()' in str(call)]
+        self.assertTrue(len(geolocation_calls) > 0, "Geolocation JavaScript not found in HTML components")
+        
+        # Verify key functions are present in the script
+        geolocation_script = str(geolocation_calls[0])
+        self.assertIn('function getLocation()', geolocation_script, "getLocation function not found in geolocation script")
+        self.assertIn('function reverseGeocode(', geolocation_script, "reverseGeocode function not found in geolocation script")
+        self.assertIn('.location-input textarea, .location-input input', geolocation_script, 
+                     "Location input selector not found in geolocation script")
+
 
 if __name__ == '__main__':
     unittest.main() 
