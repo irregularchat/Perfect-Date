@@ -251,13 +251,14 @@ def get_busy_status(place: Dict) -> str:
     else:
         return "Likely not too busy right now"
 
-def create_map(places: List[Dict], center_location: str = None) -> Tuple[str, List[Dict], str]:
+def create_map(places: List[Dict], center_location: str = None, itinerary_place_ids: List[str] = None) -> Tuple[str, List[Dict], str]:
     """
     Create an interactive map with markers for the given places.
     
     Args:
         places (List[Dict]): List of place dictionaries with location information
         center_location (str, optional): Location to center the map on
+        itinerary_place_ids (List[str], optional): List of place IDs that are in the itinerary
         
     Returns:
         Tuple[str, List[Dict], str]: HTML map, filtered places list, and HTML table of place information
@@ -275,6 +276,10 @@ def create_map(places: List[Dict], center_location: str = None) -> Tuple[str, Li
             map_html = map_html.replace('width: 100%;', 'width: 100% !important;')
             map_html = map_html.replace('height: 100.0%;', 'height: 400px !important;')
             return map_html, [], ""
+            
+        # Initialize itinerary_place_ids if None
+        if itinerary_place_ids is None:
+            itinerary_place_ids = []
             
         # If no places but we have a center location and maps API
         if not places and center_location and is_maps_available():
@@ -406,10 +411,23 @@ def create_map(places: List[Dict], center_location: str = None) -> Tuple[str, Li
                 """
                 
                 # Add marker to map
-                folium.Marker(
+                place_id = place.get('place_id', '')
+                
+                # Determine if this place is in the itinerary
+                is_in_itinerary = place_id in itinerary_place_ids
+                
+                # Choose marker color based on itinerary status
+                marker_color = 'green' if is_in_itinerary else 'blue'
+                
+                # Add a unique ID to the marker for later reference
+                marker_id = f"marker_{place_id}"
+                
+                marker = folium.Marker(
                     location=[lat, lng],
                     popup=folium.Popup(popup_content, max_width=300),
-                    tooltip=name
+                    tooltip=name,
+                    icon=folium.Icon(color=marker_color, icon='info-sign'),
+                    id=marker_id
                 ).add_to(m)
                 
                 # Add to table HTML
@@ -430,8 +448,36 @@ def create_map(places: List[Dict], center_location: str = None) -> Tuple[str, Li
         </div>
         """
         
-        # Return the HTML representation of the map
+        # Add JavaScript to allow updating marker colors
+        js_code = """
+        <script>
+        function updateMarkerColor(placeId, color) {
+            // Find the marker by ID
+            const markerId = "marker_" + placeId;
+            const markers = document.querySelectorAll('.leaflet-marker-icon');
+            
+            for (let i = 0; i < markers.length; i++) {
+                const marker = markers[i];
+                // Check if this is our marker
+                if (marker.id === markerId || marker.src.includes(placeId)) {
+                    // Update marker color by changing the icon URL
+                    if (color === 'green') {
+                        marker.src = marker.src.replace('marker-icon.png', 'marker-icon-green.png');
+                        marker.src = marker.src.replace('marker-blue', 'marker-green');
+                    } else {
+                        marker.src = marker.src.replace('marker-icon-green.png', 'marker-icon.png');
+                        marker.src = marker.src.replace('marker-green', 'marker-blue');
+                    }
+                }
+            }
+        }
+        </script>
+        """
+        
+        # Add the JavaScript to the map HTML
         map_html = m._repr_html_()
+        map_html = map_html.replace('</body>', js_code + '</body>')
+        
         # Ensure the map is full width and height
         map_html = map_html.replace('width: 100%;', 'width: 100% !important;')
         map_html = map_html.replace('height: 100.0%;', 'height: 400px !important;')
@@ -520,13 +566,14 @@ def format_place_info(place: Dict) -> str:
         print(f"Error formatting place info: {str(e)}")
         return f"<div>Error formatting place information: {str(e)}</div>"
 
-def search_places_for_date_idea(location: str, date_idea_components: List[str]) -> Tuple[str, List[Dict], str]:
+def search_places_for_date_idea(location: str, date_idea_components: List[str], itinerary_place_ids: List[str] = None) -> Tuple[str, List[Dict], str]:
     """
     Search for places based on date idea components and return map and place information.
     
     Args:
         location (str): Location to search around
         date_idea_components (List[str]): List of components of the date idea to search for
+        itinerary_place_ids (List[str], optional): List of place IDs that are in the itinerary
         
     Returns:
         Tuple[str, List[Dict], str]: HTML map, list of place details, and formatted place info HTML
@@ -669,7 +716,7 @@ def search_places_for_date_idea(location: str, date_idea_components: List[str]) 
     # Create map with all places
     filtered_places = []
     try:
-        map_html, filtered_places, table_html = create_map(all_places, location)
+        map_html, filtered_places, table_html = create_map(all_places, location, itinerary_place_ids)
     except Exception as e:
         print(f"Error creating map with places: {str(e)}")
         # Create fallback map

@@ -1,5 +1,8 @@
 import os
 import gradio as gr
+import json
+import re
+from datetime import datetime
 from dotenv import load_dotenv
 from utilities.openai_tools import generate_date_ideas, is_openai_available, generate_event_ideas
 from utilities.map_tools import is_maps_available
@@ -412,7 +415,1192 @@ a[href*="maps.google.com"], a[href*="google.com/maps"], .maps-button {
     color: white !important;
     background-color: #4285F4 !important;
 }
+
+/* Itinerary section styling */
+.itinerary-container {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    background-color: #f9fafb;
+}
+
+.itinerary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #818cf8;
+    padding-bottom: 10px;
+}
+
+.itinerary-header h3 {
+    color: #4f46e5;
+    margin: 0;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.itinerary-item {
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background-color: white;
+    position: relative;
+}
+
+.itinerary-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.itinerary-item-title {
+    font-weight: bold;
+    color: #4f46e5;
+    font-size: 16px;
+    margin: 0;
+}
+
+.itinerary-item-time {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.itinerary-item-description {
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.itinerary-item-cost {
+    font-weight: bold;
+    color: #10b981;
+}
+
+.itinerary-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.itinerary-empty {
+    text-align: center;
+    padding: 20px;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.remove-item-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.remove-item-btn:hover {
+    background-color: #dc2626;
+}
+
+.add-to-itinerary-btn {
+    background-color: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.add-to-itinerary-btn:hover {
+    background-color: #4338ca;
+}
+
+.export-btn, .share-btn, .regenerate-btn {
+    background-color: #10b981;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.export-btn:hover, .share-btn:hover {
+    background-color: #059669;
+}
+
+.regenerate-btn {
+    background-color: #f59e0b;
+}
+
+.regenerate-btn:hover {
+    background-color: #d97706;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .itinerary-container {
+        background-color: #1f2937;
+        border-color: #374151;
+    }
+    
+    .itinerary-item {
+        background-color: #111827;
+        border-color: #374151;
+    }
+    
+    .itinerary-item-title {
+        color: #818cf8;
+    }
+    
+    .itinerary-item-time {
+        color: #9ca3af;
+    }
+    
+    .itinerary-item-cost {
+        color: #34d399;
+    }
+    
+    .itinerary-empty {
+        color: #9ca3af;
+    }
+}
 """
+
+def render_itinerary(itinerary_items):
+    """Render the itinerary as HTML"""
+    if not itinerary_items:
+        return """
+        <div class="itinerary-container">
+            <div class="itinerary-header">
+                <h3>Your Itinerary</h3>
+            </div>
+            <div class="itinerary-empty">
+                Your itinerary is empty. Add items from the recommendations.
+            </div>
+        </div>
+        """
+    
+    html = """
+    <div class="itinerary-container">
+        <div class="itinerary-header">
+            <h3>Your Itinerary</h3>
+        </div>
+        <div class="itinerary-items-container" id="itinerary-items-container">
+    """
+    
+    for i, item in enumerate(itinerary_items):
+        if item['type'] == 'event':
+            # Format the timeline for display
+            timeline_html = ""
+            for line in item['timeline'].strip().split('\n'):
+                line = line.strip()
+                if line.startswith('•') or line.startswith('-'):
+                    # It's a time entry, format it specially
+                    line = line.replace('-', '•', 1).strip()
+                    
+                    # Extract time if possible for editable fields
+                    time_pattern = r'(\d+:\d+ [AP]M) - (\d+:\d+ [AP]M)'
+                    time_match = re.search(time_pattern, line)
+                    
+                    if time_match:
+                        start_time = time_match.group(1)
+                        end_time = time_match.group(2)
+                        activity = line.split(':', 1)[1].strip() if ':' in line else line
+                        
+                        # Create editable time fields
+                        timeline_html += f'''
+                        <div class="timeline-entry editable-timeline-entry" style="margin-bottom:8px; padding-left:10px; border-left:2px solid #4f46e5;">
+                            <div class="time-edit-container">
+                                <input type="text" class="time-edit start-time" value="{start_time}" 
+                                       data-item-id="{item['id']}" data-line-index="{len(timeline_html.split('timeline-entry'))-1}">
+                                <span>-</span>
+                                <input type="text" class="time-edit end-time" value="{end_time}" 
+                                       data-item-id="{item['id']}" data-line-index="{len(timeline_html.split('timeline-entry'))-1}">
+                                <span class="activity-text">{activity}</span>
+                            </div>
+                        </div>
+                        '''
+                    else:
+                        timeline_html += f'<div class="timeline-entry" style="margin-bottom:8px; padding-left:10px; border-left:2px solid #4f46e5;">{line}</div>'
+                else:
+                    timeline_html += f'<div style="margin-bottom:6px;">{line}</div>'
+            
+            html += f"""
+            <div class="itinerary-item" data-id="{item['id']}" draggable="true">
+                <button class="remove-item-btn" onclick="removeFromItinerary('{item['id']}')">×</button>
+                <div class="itinerary-item-header">
+                    <h4 class="itinerary-item-title">{item['title']}</h4>
+                    <button class="regenerate-place-btn" onclick="regeneratePlace('{item['id']}')">🔄 Regenerate</button>
+                </div>
+                <div class="itinerary-item-description">
+                    {timeline_html}
+                </div>
+                <div class="itinerary-item-cost">
+                    Total Cost: ${item['cost']}
+                </div>
+            </div>
+            """
+        elif item['type'] == 'place':
+            # For places, add time fields if they don't exist
+            start_time = item.get('start_time', '')
+            end_time = item.get('end_time', '')
+            
+            html += f"""
+            <div class="itinerary-item" data-id="{item['id']}" draggable="true">
+                <button class="remove-item-btn" onclick="removeFromItinerary('{item['id']}')">×</button>
+                <div class="itinerary-item-header">
+                    <h4 class="itinerary-item-title">{item['name']}</h4>
+                    <button class="regenerate-place-btn" onclick="regeneratePlace('{item['id']}')">🔄 Regenerate</button>
+                </div>
+                <div class="itinerary-item-time-edit">
+                    <label>Visit time:</label>
+                    <input type="text" class="time-edit start-time" placeholder="Start time" value="{start_time}" 
+                           data-item-id="{item['id']}">
+                    <span>-</span>
+                    <input type="text" class="time-edit end-time" placeholder="End time" value="{end_time}" 
+                           data-item-id="{item['id']}">
+                </div>
+                <div class="itinerary-item-description">
+                    <p><strong>Address:</strong> {item['address']}</p>
+                    <p><strong>Rating:</strong> {item['rating']}/5</p>
+                    <p><a href="{item['url']}" target="_blank" class="maps-button">View on Google Maps</a></p>
+                </div>
+            </div>
+            """
+    
+    html += """
+        </div>
+        <script>
+        // Function to handle removing items from itinerary
+        function removeFromItinerary(id) {
+            // Dispatch the event to Gradio
+            document.dispatchEvent(new CustomEvent('remove_from_itinerary', {
+                detail: id
+            }));
+        }
+        
+        // Function to handle regenerating a specific place
+        function regeneratePlace(id) {
+            // Dispatch the event to Gradio
+            document.dispatchEvent(new CustomEvent('regenerate_place', {
+                detail: id
+            }));
+        }
+        
+        // Set up drag and drop for reordering
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+            setupTimeEditing();
+        });
+        
+        function setupDragAndDrop() {
+            const container = document.getElementById('itinerary-items-container');
+            if (!container) return;
+            
+            const items = container.querySelectorAll('.itinerary-item');
+            
+            items.forEach(item => {
+                item.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('text/plain', item.getAttribute('data-id'));
+                    item.classList.add('dragging');
+                });
+                
+                item.addEventListener('dragend', function() {
+                    item.classList.remove('dragging');
+                });
+                
+                item.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    const draggingItem = container.querySelector('.dragging');
+                    if (draggingItem !== item) {
+                        const rect = item.getBoundingClientRect();
+                        const y = e.clientY - rect.top;
+                        
+                        if (y < rect.height / 2) {
+                            container.insertBefore(draggingItem, item);
+                        } else {
+                            container.insertBefore(draggingItem, item.nextSibling);
+                        }
+                        
+                        // Save the new order
+                        saveItineraryOrder();
+                    }
+                });
+            });
+            
+            container.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+        }
+        
+        function setupTimeEditing() {
+            const timeInputs = document.querySelectorAll('.time-edit');
+            
+            timeInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    const itemId = this.getAttribute('data-item-id');
+                    const isStartTime = this.classList.contains('start-time');
+                    const timeValue = this.value;
+                    
+                    // Dispatch event to update the time
+                    document.dispatchEvent(new CustomEvent('update_item_time', {
+                        detail: JSON.stringify({
+                            id: itemId,
+                            timeType: isStartTime ? 'start' : 'end',
+                            value: timeValue
+                        })
+                    }));
+                });
+            });
+        }
+        
+        function saveItineraryOrder() {
+            const container = document.getElementById('itinerary-items-container');
+            if (!container) return;
+            
+            const items = container.querySelectorAll('.itinerary-item');
+            const newOrder = Array.from(items).map(item => item.getAttribute('data-id'));
+            
+            // Dispatch event to update the order
+            document.dispatchEvent(new CustomEvent('update_itinerary_order', {
+                detail: JSON.stringify(newOrder)
+            }));
+        }
+        </script>
+    </div>
+    """
+    
+    return html
+
+def add_to_itinerary(itinerary_state, item_json):
+    """Add an item to the itinerary"""
+    try:
+        item = json.loads(item_json)
+        # Check if item is already in itinerary
+        if not any(existing['id'] == item['id'] for existing in itinerary_state):
+            # Add place_id if it's a place
+            if item['type'] == 'place' and 'place_id' not in item and 'id' in item:
+                # Extract place_id from the id (format: place_PLACEID)
+                if item['id'].startswith('place_'):
+                    item['place_id'] = item['id'].split('_', 1)[1]
+            
+            itinerary_state.append(item)
+            
+            # Add JavaScript to update marker color
+            if item['type'] == 'place' and 'place_id' in item:
+                # Add script to update marker color
+                script = f"""
+                <script>
+                try {{
+                    // Update marker color to green
+                    if (typeof updateMarkerColor === 'function') {{
+                        updateMarkerColor("{item['place_id']}", "green");
+                    }}
+                }} catch (e) {{
+                    console.error("Error updating marker color:", e);
+                }}
+                </script>
+                """
+                return render_itinerary(itinerary_state) + script, itinerary_state
+        
+        # Render the updated itinerary
+        return render_itinerary(itinerary_state), itinerary_state
+    except Exception as e:
+        print(f"Error adding to itinerary: {str(e)}")
+        return render_itinerary(itinerary_state), itinerary_state
+
+def remove_from_itinerary(itinerary_state, item_id):
+    """Remove an item from the itinerary"""
+    # Find the item to be removed
+    item_to_remove = None
+    for item in itinerary_state:
+        if item['id'] == item_id:
+            item_to_remove = item
+            break
+    
+    # Remove the item
+    itinerary_state = [item for item in itinerary_state if item['id'] != item_id]
+    
+    # If it was a place, update the marker color
+    if item_to_remove and item_to_remove['type'] == 'place' and 'place_id' in item_to_remove:
+        # Add script to update marker color
+        script = f"""
+        <script>
+        try {{
+            // Update marker color back to blue
+            if (typeof updateMarkerColor === 'function') {{
+                updateMarkerColor("{item_to_remove['place_id']}", "blue");
+            }}
+        }} catch (e) {{
+            console.error("Error updating marker color:", e);
+        }}
+        </script>
+        """
+        return render_itinerary(itinerary_state) + script, itinerary_state
+    
+    return render_itinerary(itinerary_state), itinerary_state
+
+def update_item_time(itinerary_state, update_data_json):
+    """Update the time for an item in the itinerary"""
+    try:
+        update_data = json.loads(update_data_json)
+        item_id = update_data.get('id')
+        time_type = update_data.get('timeType')
+        time_value = update_data.get('value')
+        
+        for item in itinerary_state:
+            if item['id'] == item_id:
+                if time_type == 'start':
+                    item['start_time'] = time_value
+                else:
+                    item['end_time'] = time_value
+                break
+        
+        # Render the updated itinerary
+        return render_itinerary(itinerary_state), itinerary_state
+    except Exception as e:
+        print(f"Error updating item time: {str(e)}")
+        return render_itinerary(itinerary_state), itinerary_state
+
+def update_itinerary_order(itinerary_state, order_json):
+    """Update the order of items in the itinerary"""
+    try:
+        new_order = json.loads(order_json)
+        
+        # Create a dictionary of items by ID for quick lookup
+        items_by_id = {item['id']: item for item in itinerary_state}
+        
+        # Create a new itinerary with the updated order
+        new_itinerary = [items_by_id[item_id] for item_id in new_order if item_id in items_by_id]
+        
+        # Render the updated itinerary
+        return render_itinerary(new_itinerary), new_itinerary
+    except Exception as e:
+        print(f"Error updating itinerary order: {str(e)}")
+        return render_itinerary(itinerary_state), itinerary_state
+
+def regenerate_recommendations(last_inputs, current_recommendations):
+    """Regenerate recommendations with the same inputs"""
+    if not last_inputs:
+        return "Please generate recommendations first.", "", "", "", render_itinerary([])
+    
+    # Extract inputs
+    inputs = last_inputs.get('inputs', {})
+    
+    # Generate new recommendations
+    main_content, timeline_content, map_html, place_details = generate_event_ideas(
+        inputs.get('time_available', 4),
+        inputs.get('budget', 100),
+        inputs.get('vibe', []),
+        inputs.get('location_type', []),
+        inputs.get('physical_activity', 5),
+        inputs.get('partner_likes', ""),
+        inputs.get('partner_dislikes', ""),
+        inputs.get('partner_hobbies', ""),
+        inputs.get('partner_personality', ""),
+        inputs.get('self_preferences', ""),
+        inputs.get('misc_input', ""),
+        inputs.get('location', ""),
+        inputs.get('event_type', "Casual Dating")
+    )
+    
+    # Extract event ideas from the content
+    event_ideas = []
+    
+    # Extract titles and descriptions
+    title_pattern = r'## Event Idea: (.*?)[\r\n]'
+    titles = re.findall(title_pattern, main_content)
+    
+    # Extract timeline sections
+    timeline_pattern = r'### Timeline:(.*?)(?=###|$)'
+    timeline_matches = re.findall(timeline_pattern, main_content, re.DOTALL)
+    
+    # Extract cost information
+    cost_pattern = r'\*\*Total Cost\*\*: \$([\d.]+)'
+    costs = re.findall(cost_pattern, main_content)
+    
+    # Extract why it's a good fit
+    fit_pattern = r'\*\*Why It\'s a Good Fit\*\*: (.*?)[\r\n]'
+    fits = re.findall(fit_pattern, main_content)
+    
+    # Combine the extracted information
+    for i in range(len(titles)):
+        if i < len(timeline_matches) and i < len(costs) and i < len(fits):
+            event_ideas.append({
+                "title": titles[i],
+                "timeline": timeline_matches[i].strip(),
+                "cost": costs[i],
+                "fit": fits[i],
+                "id": f"event_{i}"
+            })
+    
+    # Store the recommendations and inputs
+    current_recommendations_data = {
+        "event_ideas": event_ideas,
+        "place_details": place_details,
+        "inputs": inputs
+    }
+    
+    # Add buttons to add events to itinerary
+    main_content_with_buttons = main_content
+    for i, idea in enumerate(event_ideas):
+        button_html = f"""
+        <button onclick="addToItinerary('{idea['id']}')" class="add-to-itinerary-btn">
+            Add to Itinerary
+        </button>
+        """
+        # Add the button after each event idea title
+        pattern = f"## Event Idea: {re.escape(idea['title'])}"
+        replacement = f"## Event Idea: {idea['title']}\n{button_html}"
+        main_content_with_buttons = re.sub(pattern, replacement, main_content_with_buttons)
+    
+    # Format place details for display
+    place_info_html = ""
+    if place_details:
+        place_info_html = """
+        <div class="recommended-places-header">
+            <h3>Recommended Places</h3>
+        </div>
+        """
+        
+        for i, place in enumerate(place_details):
+            name = place.get('name', 'Unknown Place')
+            address = place.get('formatted_address', place.get('vicinity', 'No address available'))
+            rating = place.get('rating', 'No rating')
+            maps_url = place.get('url', place.get('maps_url', '#'))
+            
+            # Get busy status if available
+            busy_status = ""
+            if 'opening_hours' in place:
+                if place['opening_hours'].get('open_now', False):
+                    busy_status = "Currently open"
+                else:
+                    busy_status = "Currently closed"
+            
+            place_info_html += f"""
+            <div class="place-card">
+                <h4 class="place-name">{name}</h4>
+                <p><strong>Address:</strong> {address}</p>
+                <p><strong>Rating:</strong> {rating}/5</p>
+                {f"<p><strong>Status:</strong> {busy_status}</p>" if busy_status else ""}
+                <p><a href="{maps_url}" target="_blank" class="maps-button">View on Google Maps</a></p>
+                <button onclick="addPlaceToItinerary('place_{i}', '{place.get('place_id', '')}')" class="add-to-itinerary-btn">
+                    Add to Itinerary
+                </button>
+            """
+            
+            # Add website if available
+            if place.get('website'):
+                place_info_html += f"""
+                <p><strong>Website:</strong> <a href="{place['website']}" target="_blank" class="website-link">{place['website']}</a></p>
+                """
+            
+            # Add phone if available
+            if place.get('formatted_phone_number'):
+                place_info_html += f"""
+                <p><strong>Phone:</strong> {place['formatted_phone_number']}</p>
+                """
+            
+            # Add opening hours if available
+            if 'opening_hours' in place and 'weekday_text' in place['opening_hours']:
+                place_info_html += "<p><strong>Opening Hours:</strong></p><ul class='hours-list'>"
+                for day in place['opening_hours']['weekday_text']:
+                    place_info_html += f"<li>{day}</li>"
+                place_info_html += "</ul>"
+            
+            # Add reviews if available
+            if 'reviews' in place and place['reviews']:
+                place_info_html += "<p><strong>Top Review:</strong></p>"
+                review = place['reviews'][0]
+                author = review.get('author_name', 'Anonymous')
+                review_rating = review.get('rating', 'No rating')
+                text = review.get('text', 'No comment')
+                time = review.get('relative_time_description', '')
+                
+                place_info_html += f"""
+                <div class="review-box">
+                    <p><strong>{author}</strong> - {review_rating}/5 ({time})</p>
+                    <p>{text}</p>
+                </div>
+                """
+            
+            place_info_html += "</div>"
+    
+    # Add JavaScript for adding items to itinerary
+    js_for_itinerary = f"""
+    <script>
+    // Store the current recommendations
+    window.currentRecommendations = {json.dumps(current_recommendations_data)};
+    
+    function addToItinerary(id) {{
+        // Find the event in the recommendations
+        const event = window.currentRecommendations.event_ideas.find(e => e.id === id);
+        if (event) {{
+            // Create a custom event to trigger the Python function
+            const event_data = {{
+                type: 'event',
+                id: id,
+                title: event.title,
+                timeline: event.timeline,
+                cost: event.cost,
+                fit: event.fit
+            }};
+            
+            // Dispatch the event to Gradio
+            document.dispatchEvent(new CustomEvent('add_to_itinerary', {{
+                detail: JSON.stringify(event_data)
+            }}));
+        }}
+    }}
+    
+    function addPlaceToItinerary(id, placeId) {{
+        // Extract the index from the id (format: place_X)
+        const index = parseInt(id.split('_')[1]);
+        if (!isNaN(index) && index >= 0 && index < window.currentRecommendations.place_details.length) {{
+            const place = window.currentRecommendations.place_details[index];
+            
+            // Create a custom event to trigger the Python function
+            const place_data = {{
+                type: 'place',
+                id: id,
+                place_id: placeId || place.place_id || '',
+                name: place.name || 'Unknown Place',
+                address: place.formatted_address || place.vicinity || 'No address available',
+                rating: place.rating || 'No rating',
+                url: place.url || place.maps_url || '#'
+            }};
+            
+            // Dispatch the event to Gradio
+            document.dispatchEvent(new CustomEvent('add_to_itinerary', {{
+                detail: JSON.stringify(place_data)
+            }}));
+        }}
+    }}
+    </script>
+    """
+    
+    # Add the JavaScript to the main content
+    main_content_with_buttons += js_for_itinerary
+    
+    return main_content_with_buttons, timeline_content, map_html, place_info_html, current_recommendations_data
+
+def regenerate_place(itinerary_state, current_recommendations, place_id):
+    """Regenerate a specific place in the itinerary"""
+    if not current_recommendations:
+        return "Please generate recommendations first.", "", "", "", render_itinerary(itinerary_state), itinerary_state
+    
+    # Find the place in the itinerary
+    place_to_regenerate = None
+    for item in itinerary_state:
+        if item['id'] == place_id:
+            place_to_regenerate = item
+            break
+    
+    if not place_to_regenerate:
+        return "Place not found in itinerary.", "", "", "", render_itinerary(itinerary_state), itinerary_state
+    
+    # Extract inputs from current recommendations
+    inputs = current_recommendations.get('inputs', {})
+    
+    # If it's an event, regenerate a similar event
+    if place_to_regenerate['type'] == 'event':
+        # Generate new recommendations with the same inputs
+        main_content, timeline_content, map_html, place_details = generate_event_ideas(
+            inputs.get('time_available', 4),
+            inputs.get('budget', 100),
+            inputs.get('vibe', []),
+            inputs.get('location_type', []),
+            inputs.get('physical_activity', 5),
+            inputs.get('partner_likes', ""),
+            inputs.get('partner_dislikes', ""),
+            inputs.get('partner_hobbies', ""),
+            inputs.get('partner_personality', ""),
+            inputs.get('self_preferences', ""),
+            inputs.get('misc_input', ""),
+            inputs.get('location', ""),
+            inputs.get('event_type', "Casual Dating")
+        )
+        
+        # Extract event ideas from the content
+        event_ideas = []
+        
+        # Extract titles and descriptions
+        title_pattern = r'## Event Idea: (.*?)[\r\n]'
+        titles = re.findall(title_pattern, main_content)
+        
+        # Extract timeline sections
+        timeline_pattern = r'### Timeline:(.*?)(?=###|$)'
+        timeline_matches = re.findall(timeline_pattern, main_content, re.DOTALL)
+        
+        # Extract cost information
+        cost_pattern = r'\*\*Total Cost\*\*: \$([\d.]+)'
+        costs = re.findall(cost_pattern, main_content)
+        
+        # Extract why it's a good fit
+        fit_pattern = r'\*\*Why It\'s a Good Fit\*\*: (.*?)[\r\n]'
+        fits = re.findall(fit_pattern, main_content)
+        
+        # Combine the extracted information
+        for i in range(len(titles)):
+            if i < len(timeline_matches) and i < len(costs) and i < len(fits):
+                event_ideas.append({
+                    "title": titles[i],
+                    "timeline": timeline_matches[i].strip(),
+                    "cost": costs[i],
+                    "fit": fits[i],
+                    "id": f"event_{i}"
+                })
+        
+        # Replace the old event with the first new one
+        if event_ideas:
+            new_event = event_ideas[0]
+            new_event['id'] = place_to_regenerate['id']  # Keep the same ID
+            
+            # Preserve time if it was set
+            if 'start_time' in place_to_regenerate:
+                new_event['start_time'] = place_to_regenerate['start_time']
+            if 'end_time' in place_to_regenerate:
+                new_event['end_time'] = place_to_regenerate['end_time']
+            
+            # Replace the old event with the new one
+            for i, item in enumerate(itinerary_state):
+                if item['id'] == place_id:
+                    itinerary_state[i] = new_event
+                    break
+        
+        # Update the current recommendations
+        current_recommendations_data = {
+            "event_ideas": event_ideas,
+            "place_details": place_details,
+            "inputs": inputs
+        }
+        
+        # Format the output similar to regenerate_recommendations
+        main_content_with_buttons = main_content
+        for i, idea in enumerate(event_ideas):
+            button_html = f"""
+            <button onclick="addToItinerary('{idea['id']}')" class="add-to-itinerary-btn">
+                Add to Itinerary
+            </button>
+            """
+            pattern = f"## Event Idea: {re.escape(idea['title'])}"
+            replacement = f"## Event Idea: {idea['title']}\n{button_html}"
+            main_content_with_buttons = re.sub(pattern, replacement, main_content_with_buttons)
+        
+        # Format place details for display
+        place_info_html = ""
+        if place_details:
+            place_info_html = """
+            <div class="recommended-places-header">
+                <h3>Recommended Places</h3>
+            </div>
+            """
+            
+            for i, place in enumerate(place_details):
+                name = place.get('name', 'Unknown Place')
+                address = place.get('formatted_address', place.get('vicinity', 'No address available'))
+                rating = place.get('rating', 'No rating')
+                maps_url = place.get('url', place.get('maps_url', '#'))
+                
+                # Get busy status if available
+                busy_status = ""
+                if 'opening_hours' in place:
+                    if place['opening_hours'].get('open_now', False):
+                        busy_status = "Currently open"
+                    else:
+                        busy_status = "Currently closed"
+                
+                place_info_html += f"""
+                <div class="place-card">
+                    <h4 class="place-name">{name}</h4>
+                    <p><strong>Address:</strong> {address}</p>
+                    <p><strong>Rating:</strong> {rating}/5</p>
+                    {f"<p><strong>Status:</strong> {busy_status}</p>" if busy_status else ""}
+                    <p><a href="{maps_url}" target="_blank" class="maps-button">View on Google Maps</a></p>
+                    <button onclick="addPlaceToItinerary('place_{i}', '{place.get('place_id', '')}')" class="add-to-itinerary-btn">
+                        Add to Itinerary
+                    </button>
+                """
+                
+                # Add website if available
+                if place.get('website'):
+                    place_info_html += f"""
+                    <p><strong>Website:</strong> <a href="{place['website']}" target="_blank" class="website-link">{place['website']}</a></p>
+                    """
+                
+                # Add phone if available
+                if place.get('formatted_phone_number'):
+                    place_info_html += f"""
+                    <p><strong>Phone:</strong> {place['formatted_phone_number']}</p>
+                    """
+                
+                # Add opening hours if available
+                if 'opening_hours' in place and 'weekday_text' in place['opening_hours']:
+                    place_info_html += "<p><strong>Opening Hours:</strong></p><ul class='hours-list'>"
+                    for day in place['opening_hours']['weekday_text']:
+                        place_info_html += f"<li>{day}</li>"
+                    place_info_html += "</ul>"
+                
+                # Add reviews if available
+                if 'reviews' in place and place['reviews']:
+                    place_info_html += "<p><strong>Top Review:</strong></p>"
+                    review = place['reviews'][0]
+                    author = review.get('author_name', 'Anonymous')
+                    review_rating = review.get('rating', 'No rating')
+                    text = review.get('text', 'No comment')
+                    time = review.get('relative_time_description', '')
+                    
+                    place_info_html += f"""
+                    <div class="review-box">
+                        <p><strong>{author}</strong> - {review_rating}/5 ({time})</p>
+                        <p>{text}</p>
+                    </div>
+                    """
+                
+                place_info_html += "</div>"
+        
+        # Add JavaScript for adding items to itinerary
+        js_for_itinerary = f"""
+        <script>
+        // Store the current recommendations
+        window.currentRecommendations = {json.dumps(current_recommendations_data)};
+        
+        function addToItinerary(id) {{
+            // Find the event in the recommendations
+            const event = window.currentRecommendations.event_ideas.find(e => e.id === id);
+            if (event) {{
+                // Create a custom event to trigger the Python function
+                const event_data = {{
+                    type: 'event',
+                    id: id,
+                    title: event.title,
+                    timeline: event.timeline,
+                    cost: event.cost,
+                    fit: event.fit
+                }};
+                
+                // Dispatch the event to Gradio
+                document.dispatchEvent(new CustomEvent('add_to_itinerary', {{
+                    detail: JSON.stringify(event_data)
+                }}));
+            }}
+        }}
+        
+        function addPlaceToItinerary(id, placeId) {{
+            // Extract the index from the id (format: place_X)
+            const index = parseInt(id.split('_')[1]);
+            if (!isNaN(index) && index >= 0 && index < window.currentRecommendations.place_details.length) {{
+                const place = window.currentRecommendations.place_details[index];
+                
+                // Create a custom event to trigger the Python function
+                const place_data = {{
+                    type: 'place',
+                    id: id,
+                    place_id: placeId || place.place_id || '',
+                    name: place.name || 'Unknown Place',
+                    address: place.formatted_address || place.vicinity || 'No address available',
+                    rating: place.rating || 'No rating',
+                    url: place.url || place.maps_url || '#'
+                }};
+                
+                // Dispatch the event to Gradio
+                document.dispatchEvent(new CustomEvent('add_to_itinerary', {{
+                    detail: JSON.stringify(place_data)
+                }}));
+            }}
+        }}
+        </script>
+        """
+        
+        # Add the JavaScript to the main content
+        main_content_with_buttons += js_for_itinerary
+        
+        return main_content_with_buttons, timeline_content, map_html, place_info_html, render_itinerary(itinerary_state), itinerary_state
+    
+    # If it's a place, find similar places
+    elif place_to_regenerate['type'] == 'place':
+        location = inputs.get('location', "")
+        if not location or not is_maps_available():
+            return "Location not provided or Maps API not available.", "", "", "", render_itinerary(itinerary_state), itinerary_state
+        
+        # Search for similar places
+        from utilities.map_tools import search_places, get_place_details
+        
+        # Use the place name as the search query
+        search_results = search_places(location, place_to_regenerate['name'])
+        
+        if not search_results or len(search_results) == 0:
+            return "No similar places found.", "", "", "", render_itinerary(itinerary_state), itinerary_state
+        
+        # Get details for the first result that's not the same as the current place
+        new_place = None
+        for result in search_results:
+            place_id = result.get('place_id')
+            place_details = get_place_details(place_id)
+            
+            # Skip if it's the same place
+            if place_details.get('name') == place_to_regenerate['name']:
+                continue
+            
+            new_place = {
+                "type": "place",
+                "id": place_to_regenerate['id'],  # Keep the same ID
+                "name": place_details.get('name', 'Unknown Place'),
+                "address": place_details.get('formatted_address', place_details.get('vicinity', 'No address available')),
+                "rating": place_details.get('rating', 'No rating'),
+                "url": place_details.get('url', place_details.get('maps_url', '#')),
+                "place_id": place_id  # Add the place_id
+            }
+            
+            # Preserve time if it was set
+            if 'start_time' in place_to_regenerate:
+                new_place['start_time'] = place_to_regenerate['start_time']
+            if 'end_time' in place_to_regenerate:
+                new_place['end_time'] = place_to_regenerate['end_time']
+            
+            break
+        
+        if not new_place:
+            return "No alternative places found.", "", "", "", render_itinerary(itinerary_state), itinerary_state
+        
+        # If the old place had a place_id, update the marker color back to blue
+        old_place_id = place_to_regenerate.get('place_id', '')
+        update_old_marker_script = ""
+        if old_place_id:
+            update_old_marker_script = f"""
+            <script>
+            try {{
+                // Update old marker color back to blue
+                if (typeof updateMarkerColor === 'function') {{
+                    updateMarkerColor("{old_place_id}", "blue");
+                }}
+            }} catch (e) {{
+                console.error("Error updating old marker color:", e);
+            }}
+            </script>
+            """
+        
+        # Replace the old place with the new one
+        for i, item in enumerate(itinerary_state):
+            if item['id'] == place_id:
+                itinerary_state[i] = new_place
+                break
+        
+        # Update the new marker color to green
+        update_new_marker_script = ""
+        if new_place.get('place_id'):
+            update_new_marker_script = f"""
+            <script>
+            try {{
+                // Update new marker color to green
+                if (typeof updateMarkerColor === 'function') {{
+                    updateMarkerColor("{new_place['place_id']}", "green");
+                }}
+            }} catch (e) {{
+                console.error("Error updating new marker color:", e);
+            }}
+            </script>
+            """
+        
+        # Format place details for display
+        place_info_html = """
+        <div class="recommended-places-header">
+            <h3>Alternative Place</h3>
+        </div>
+        <div class="place-card">
+            <h4 class="place-name">{0}</h4>
+            <p><strong>Address:</strong> {1}</p>
+            <p><strong>Rating:</strong> {2}/5</p>
+            <p><a href="{3}" target="_blank" class="maps-button">View on Google Maps</a></p>
+        </div>
+        """.format(new_place['name'], new_place['address'], new_place['rating'], new_place['url'])
+        
+        return f"Replaced {place_to_regenerate['name']} with {new_place['name']}", "", "", place_info_html, render_itinerary(itinerary_state) + update_old_marker_script + update_new_marker_script, itinerary_state
+    
+    return "Item type not supported for regeneration.", "", "", "", render_itinerary(itinerary_state), itinerary_state
+
+def export_itinerary_as_pdf(itinerary_state):
+    """Export the itinerary as a PDF"""
+    if not itinerary_state:
+        return "Your itinerary is empty. Add items before exporting."
+    
+    # Create a formatted HTML version of the itinerary for printing
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Your Perfect Event Itinerary</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            h1 {
+                color: #4f46e5;
+                text-align: center;
+                border-bottom: 2px solid #818cf8;
+                padding-bottom: 10px;
+            }
+            .itinerary-item {
+                margin-bottom: 20px;
+                padding: 15px;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+            }
+            .itinerary-item-title {
+                color: #4f46e5;
+                margin-top: 0;
+                margin-bottom: 10px;
+                font-size: 18px;
+            }
+            .timeline-entry {
+                margin-bottom: 8px;
+                padding-left: 10px;
+                border-left: 2px solid #4f46e5;
+            }
+            .itinerary-item-cost {
+                font-weight: bold;
+                color: #10b981;
+                margin-top: 10px;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 30px;
+                font-size: 12px;
+                color: #6b7280;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Your Perfect Event Itinerary</h1>
+        <p>Generated on: """ + datetime.now().strftime("%B %d, %Y at %I:%M %p") + """</p>
+    """
+    
+    for item in itinerary_state:
+        if item['type'] == 'event':
+            # Format the timeline for display
+            timeline_html = ""
+            for line in item['timeline'].strip().split('\n'):
+                line = line.strip()
+                if line.startswith('•') or line.startswith('-'):
+                    # It's a time entry, format it specially
+                    line = line.replace('-', '•', 1).strip()
+                    timeline_html += f'<div class="timeline-entry">{line}</div>'
+                else:
+                    timeline_html += f'<div>{line}</div>'
+            
+            html += f"""
+            <div class="itinerary-item">
+                <h3 class="itinerary-item-title">{item['title']}</h3>
+                <div class="itinerary-item-description">
+                    {timeline_html}
+                </div>
+                <div class="itinerary-item-cost">
+                    Total Cost: ${item['cost']}
+                </div>
+            </div>
+            """
+        elif item['type'] == 'place':
+            html += f"""
+            <div class="itinerary-item">
+                <h3 class="itinerary-item-title">{item['name']}</h3>
+                <div class="itinerary-item-description">
+                    <p><strong>Address:</strong> {item['address']}</p>
+                    <p><strong>Rating:</strong> {item['rating']}/5</p>
+                    <p><a href="{item['url']}" target="_blank">View on Google Maps</a></p>
+                </div>
+            </div>
+            """
+    
+    html += """
+        <div class="footer">
+            Created with Perfect Event Generator
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Return the HTML that will be used for printing
+    return html
+
+def share_itinerary(itinerary_state):
+    """Generate a shareable link for the itinerary"""
+    if not itinerary_state:
+        return "Your itinerary is empty. Add items before sharing."
+    
+    # In a real application, you would save the itinerary to a database and generate a unique URL
+    # For this demo, we'll just create a data URL that can be copied
+    
+    # Create a simplified JSON representation of the itinerary
+    itinerary_data = []
+    for item in itinerary_state:
+        if item['type'] == 'event':
+            itinerary_data.append({
+                "type": "event",
+                "title": item['title'],
+                "cost": item['cost']
+            })
+        elif item['type'] == 'place':
+            itinerary_data.append({
+                "type": "place",
+                "name": item['name'],
+                "address": item['address']
+            })
+    
+    # Create a shareable link (in a real app, this would be a proper URL)
+    share_html = f"""
+    <div style="padding: 20px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 20px;">
+        <h3 style="color: #4f46e5; margin-top: 0;">Share Your Itinerary</h3>
+        <p>Copy the link below to share your itinerary:</p>
+        <div style="position: relative;">
+            <input id="share-link" type="text" value="https://perfectevent.example/share/{hash(json.dumps(itinerary_data))}" 
+                   style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px;" readonly>
+            <button onclick="copyShareLink()" style="position: absolute; right: 5px; top: 5px; background-color: #4f46e5; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer;">
+                Copy
+            </button>
+        </div>
+        <p style="font-size: 12px; color: #6b7280; margin-top: 10px;">
+            Note: This is a demo link and doesn't actually work. In a real application, this would be a permanent link to your itinerary.
+        </p>
+    </div>
+    
+    <script>
+    function copyShareLink() {{
+        const shareLink = document.getElementById('share-link');
+        shareLink.select();
+        document.execCommand('copy');
+        
+        // Show a copied message
+        const button = shareLink.nextElementSibling;
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        setTimeout(() => {{
+            button.textContent = originalText;
+        }}, 2000);
+    }}
+    </script>
+    """
+    
+    return share_html
 
 # Define Gradio interface
 with gr.Blocks(
@@ -426,6 +1614,11 @@ with gr.Blocks(
     ), 
     css=custom_css
 ) as app:
+    # State variables for itinerary
+    itinerary_state = gr.State([])
+    current_recommendations = gr.State({})
+    last_inputs = gr.State({})
+    
     # Add the logo at the top
     # logo_path = "static/images/logo.png"
     # with gr.Row(elem_classes="logo-container-row"):
@@ -664,6 +1857,16 @@ with gr.Blocks(
         with gr.Column(scale=1):
             timeline_output = gr.HTML(elem_classes=["timeline-output"])
     
+    # Itinerary section
+    with gr.Row() as itinerary_container:
+        with gr.Column():
+            itinerary_output = gr.HTML(elem_classes=["itinerary-output"], label="Your Itinerary")
+            
+            with gr.Row():
+                export_btn = gr.Button("Export Itinerary as PDF", elem_classes=["export-btn"])
+                share_btn = gr.Button("Share Itinerary", elem_classes=["share-btn"])
+                regenerate_btn = gr.Button("Regenerate Recommendations", elem_classes=["regenerate-btn"])
+    
     # Map in full width
     with gr.Row() as map_container:
         map_output = gr.HTML(elem_classes=["map-output"])
@@ -886,17 +2089,41 @@ with gr.Blocks(
                     location = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
                 }
                 
-                // Find the location input field and set its value
-                const locationInputs = document.querySelectorAll('input, textarea');
-                for (let input of locationInputs) {
-                    if (input.placeholder && input.placeholder.includes("San Francisco")) {
-                        input.value = location;
-                        
-                        // Trigger an input event to ensure Gradio recognizes the change
-                        const event = new Event('input', { bubbles: true });
-                        input.dispatchEvent(event);
-                        
-                        break;
+                // Find the location input field - more reliably by looking for the element with location-input class
+                const locationInput = document.querySelector('.location-input textarea, .location-input input');
+                
+                if (locationInput) {
+                    // Set the value
+                    locationInput.value = location;
+                    
+                    // Trigger an input event to ensure Gradio recognizes the change
+                    const event = new Event('input', { bubbles: true });
+                    locationInput.dispatchEvent(event);
+                    
+                    // Also trigger a change event for good measure
+                    const changeEvent = new Event('change', { bubbles: true });
+                    locationInput.dispatchEvent(changeEvent);
+                    
+                    console.log('Location input updated to:', location);
+                } else {
+                    console.error('Location input field not found');
+                    // Fallback to the old method
+                    const locationInputs = document.querySelectorAll('input, textarea');
+                    for (let input of locationInputs) {
+                        if (input.placeholder && (
+                            input.placeholder.includes("San Francisco") || 
+                            input.placeholder.includes("location") ||
+                            input.placeholder.toLowerCase().includes("city")
+                        )) {
+                            input.value = location;
+                            
+                            // Trigger events
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                            
+                            console.log('Location input found and updated using fallback method');
+                            break;
+                        }
                     }
                 }
             })
@@ -915,6 +2142,9 @@ with gr.Blocks(
     
     // Also set up the handler after a short delay to ensure Gradio has initialized
     setTimeout(setupGeolocation, 1000);
+    
+    // And set it up again after a longer delay in case the UI is slow to load
+    setTimeout(setupGeolocation, 3000);
     </script>
     """)
     
@@ -931,7 +2161,7 @@ with gr.Blocks(
         specific_date2, specific_time2, specific_date3, specific_time3,
         budget, vibe, location_type, physical_activity, 
         partner_likes, partner_dislikes, partner_hobbies, partner_personality,
-        self_preferences, misc_input, location
+        self_preferences, misc_input, location, itinerary_state, current_recommendations
     ):
         # Process date/time preferences
         date_time_info = ""
@@ -957,11 +2187,92 @@ with gr.Blocks(
             else:
                 misc_input = date_time_info
         
+        # Store inputs for regeneration
+        inputs = {
+            "event_type": event_type,
+            "time_available": time_available,
+            "time_preference": time_preference,
+            "specific_date1": specific_date1,
+            "specific_time1": specific_time1,
+            "specific_date2": specific_date2,
+            "specific_time2": specific_time2,
+            "specific_date3": specific_date3,
+            "specific_time3": specific_time3,
+            "budget": budget,
+            "vibe": vibe,
+            "location_type": location_type,
+            "physical_activity": physical_activity,
+            "partner_likes": partner_likes,
+            "partner_dislikes": partner_dislikes,
+            "partner_hobbies": partner_hobbies,
+            "partner_personality": partner_personality,
+            "self_preferences": self_preferences,
+            "misc_input": misc_input,
+            "location": location
+        }
+        
+        # Extract place IDs from itinerary for map highlighting
+        itinerary_place_ids = []
+        for item in itinerary_state:
+            if item['type'] == 'place' and 'place_id' in item:
+                itinerary_place_ids.append(item['place_id'])
+        
         main_content, timeline_content, map_html, place_details = generate_event_ideas(
             time_available, budget, vibe, location_type, physical_activity, 
             partner_likes, partner_dislikes, partner_hobbies, partner_personality,
-            self_preferences, misc_input, location, event_type
+            self_preferences, misc_input, location, event_type,
+            itinerary_place_ids=itinerary_place_ids
         )
+        
+        # Extract event ideas from the content
+        event_ideas = []
+        
+        # Extract titles and descriptions
+        title_pattern = r'## Event Idea: (.*?)[\r\n]'
+        titles = re.findall(title_pattern, main_content)
+        
+        # Extract timeline sections
+        timeline_pattern = r'### Timeline:(.*?)(?=###|$)'
+        timeline_matches = re.findall(timeline_pattern, main_content, re.DOTALL)
+        
+        # Extract cost information
+        cost_pattern = r'\*\*Total Cost\*\*: \$([\d.]+)'
+        costs = re.findall(cost_pattern, main_content)
+        
+        # Extract why it's a good fit
+        fit_pattern = r'\*\*Why It\'s a Good Fit\*\*: (.*?)[\r\n]'
+        fits = re.findall(fit_pattern, main_content)
+        
+        # Combine the extracted information
+        for i in range(len(titles)):
+            if i < len(timeline_matches) and i < len(costs) and i < len(fits):
+                event_ideas.append({
+                    "title": titles[i],
+                    "timeline": timeline_matches[i].strip(),
+                    "cost": costs[i],
+                    "fit": fits[i],
+                    "id": f"event_{i}"
+                })
+        
+        # Store the recommendations and inputs
+        current_recommendations_data = {
+            "event_ideas": event_ideas,
+            "place_details": place_details,
+            "inputs": inputs
+        }
+        
+        # Add buttons to add events to itinerary
+        main_content_with_buttons = main_content
+        for i, idea in enumerate(event_ideas):
+            button_html = f"""
+            <button onclick="addToItinerary('{idea['id']}')" class="add-to-itinerary-btn">
+                Add to Itinerary
+            </button>
+            """
+            # Add the button after each event idea title
+            pattern = f"## Event Idea: {re.escape(idea['title'])}"
+            replacement = f"## Event Idea: {idea['title']}\n{button_html}"
+            main_content_with_buttons = re.sub(pattern, replacement, main_content_with_buttons)
         
         # Format place details for display
         place_info_html = ""
@@ -972,7 +2283,7 @@ with gr.Blocks(
             </div>
             """
             
-            for place in place_details:
+            for i, place in enumerate(place_details):
                 name = place.get('name', 'Unknown Place')
                 address = place.get('formatted_address', place.get('vicinity', 'No address available'))
                 rating = place.get('rating', 'No rating')
@@ -993,6 +2304,9 @@ with gr.Blocks(
                     <p><strong>Rating:</strong> {rating}/5</p>
                     {f"<p><strong>Status:</strong> {busy_status}</p>" if busy_status else ""}
                     <p><a href="{maps_url}" target="_blank" class="maps-button">View on Google Maps</a></p>
+                    <button onclick="addPlaceToItinerary('place_{i}', '{place.get('place_id', '')}')" class="add-to-itinerary-btn">
+                        Add to Itinerary
+                    </button>
                 """
                 
                 # Add website if available
@@ -1032,10 +2346,66 @@ with gr.Blocks(
                 
                 place_info_html += "</div>"
         
-        # Set map section visibility based on if we have map content
-        map_section_visible = bool(location and map_html)
+        # Render the current itinerary
+        itinerary_html = render_itinerary(itinerary_state)
         
-        return main_content, timeline_content, map_html, place_info_html
+        # Add JavaScript for adding items to itinerary
+        js_for_itinerary = f"""
+        <script>
+        // Store the current recommendations
+        window.currentRecommendations = {json.dumps(current_recommendations_data)};
+        
+        function addToItinerary(id) {{
+            // Find the event in the recommendations
+            const event = window.currentRecommendations.event_ideas.find(e => e.id === id);
+            if (event) {{
+                // Create a custom event to trigger the Python function
+                const event_data = {{
+                    type: 'event',
+                    id: id,
+                    title: event.title,
+                    timeline: event.timeline,
+                    cost: event.cost,
+                    fit: event.fit
+                }};
+                
+                // Dispatch the event to Gradio
+                document.dispatchEvent(new CustomEvent('add_to_itinerary', {{
+                    detail: JSON.stringify(event_data)
+                }}));
+            }}
+        }}
+        
+        function addPlaceToItinerary(id, placeId) {{
+            // Extract the index from the id (format: place_X)
+            const index = parseInt(id.split('_')[1]);
+            if (!isNaN(index) && index >= 0 && index < window.currentRecommendations.place_details.length) {{
+                const place = window.currentRecommendations.place_details[index];
+                
+                // Create a custom event to trigger the Python function
+                const place_data = {{
+                    type: 'place',
+                    id: id,
+                    place_id: placeId || place.place_id || '',
+                    name: place.name || 'Unknown Place',
+                    address: place.formatted_address || place.vicinity || 'No address available',
+                    rating: place.rating || 'No rating',
+                    url: place.url || place.maps_url || '#'
+                }};
+                
+                // Dispatch the event to Gradio
+                document.dispatchEvent(new CustomEvent('add_to_itinerary', {{
+                    detail: JSON.stringify(place_data)
+                }}));
+            }}
+        }}
+        </script>
+        """
+        
+        # Add the JavaScript to the main content
+        main_content_with_buttons += js_for_itinerary
+        
+        return main_content_with_buttons, timeline_content, map_html, place_info_html, itinerary_html, current_recommendations_data
     
     generate_button.click(
         fn=handle_generate,
@@ -1059,9 +2429,164 @@ with gr.Blocks(
             partner_personality,
             self_preferences,
             misc_input,
-            location
+            location,
+            itinerary_state,
+            current_recommendations
         ],
-        outputs=[output, timeline_output, map_output, place_info]
+        outputs=[output, timeline_output, map_output, place_info, itinerary_output, current_recommendations]
+    )
+    
+    # Set up custom event handlers for itinerary management
+    itinerary_js_handlers = gr.HTML("""
+    <script>
+    // Set up event listeners for custom events
+    document.addEventListener('add_to_itinerary', function(e) {
+        // Find the hidden add item button and trigger it
+        const addButton = document.querySelector('button[aria-label="Add Item"]');
+        if (addButton) {
+            // Set the value in the associated textbox
+            const textbox = addButton.closest('.gradio-button').nextElementSibling;
+            if (textbox) {
+                textbox.value = e.detail;
+                textbox.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // Click the button
+                addButton.click();
+            }
+        }
+    });
+    
+    document.addEventListener('remove_from_itinerary', function(e) {
+        // Find the hidden remove item button and trigger it
+        const removeButton = document.querySelector('button[aria-label="Remove Item"]');
+        if (removeButton) {
+            // Set the value in the associated textbox
+            const textbox = removeButton.closest('.gradio-button').nextElementSibling;
+            if (textbox) {
+                textbox.value = e.detail;
+                textbox.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // Click the button
+                removeButton.click();
+            }
+        }
+    });
+    
+    document.addEventListener('update_item_time', function(e) {
+        // Find the hidden update time button and trigger it
+        const updateButton = document.querySelector('button[aria-label="Update Time"]');
+        if (updateButton) {
+            // Set the value in the associated textbox
+            const textbox = updateButton.closest('.gradio-button').nextElementSibling;
+            if (textbox) {
+                textbox.value = e.detail;
+                textbox.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // Click the button
+                updateButton.click();
+            }
+        }
+    });
+    
+    document.addEventListener('update_itinerary_order', function(e) {
+        // Find the hidden update order button and trigger it
+        const updateButton = document.querySelector('button[aria-label="Update Order"]');
+        if (updateButton) {
+            // Set the value in the associated textbox
+            const textbox = updateButton.closest('.gradio-button').nextElementSibling;
+            if (textbox) {
+                textbox.value = e.detail;
+                textbox.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // Click the button
+                updateButton.click();
+            }
+        }
+    });
+    
+    document.addEventListener('regenerate_place', function(e) {
+        // Find the hidden regenerate place button and trigger it
+        const regenerateButton = document.querySelector('button[aria-label="Regenerate Place"]');
+        if (regenerateButton) {
+            // Set the value in the associated textbox
+            const textbox = regenerateButton.closest('.gradio-button').nextElementSibling;
+            if (textbox) {
+                textbox.value = e.detail;
+                textbox.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // Click the button
+                regenerateButton.click();
+            }
+        }
+    });
+    
+    console.log('Itinerary event handlers loaded');
+    </script>
+    """)
+    
+    # Add the custom event handlers
+    app.load(lambda: None, None, itinerary_js_handlers)
+    
+    # Instead of using JavaScript handlers that don't work well in tests,
+    # we can mock these actions by having the add/remove functions directly
+    # callable from test environments. The actual event handlers will be 
+    # handled by the frontend code in production.
+    
+    # Mock button handlers for testing
+    add_item_button = gr.Button("Add Item", visible=False)
+    add_item_button.click(
+        fn=add_to_itinerary,
+        inputs=[itinerary_state, gr.Textbox(visible=False)],
+        outputs=[itinerary_output, itinerary_state]
+    )
+    
+    remove_item_button = gr.Button("Remove Item", visible=False)
+    remove_item_button.click(
+        fn=remove_from_itinerary,
+        inputs=[itinerary_state, gr.Textbox(visible=False)],
+        outputs=[itinerary_output, itinerary_state]
+    )
+    
+    update_time_button = gr.Button("Update Time", visible=False)
+    update_time_button.click(
+        fn=update_item_time,
+        inputs=[itinerary_state, gr.Textbox(visible=False)],
+        outputs=[itinerary_output, itinerary_state]
+    )
+    
+    update_order_button = gr.Button("Update Order", visible=False)
+    update_order_button.click(
+        fn=update_itinerary_order,
+        inputs=[itinerary_state, gr.Textbox(visible=False)],
+        outputs=[itinerary_output, itinerary_state]
+    )
+    
+    regenerate_place_button = gr.Button("Regenerate Place", visible=False)
+    regenerate_place_button.click(
+        fn=regenerate_place,
+        inputs=[itinerary_state, current_recommendations, gr.Textbox(visible=False)],
+        outputs=[output, timeline_output, map_output, place_info, itinerary_output, itinerary_state]
+    )
+    
+    # Set up the regenerate button
+    regenerate_btn.click(
+        fn=regenerate_recommendations,
+        inputs=[current_recommendations, itinerary_state],
+        outputs=[output, timeline_output, map_output, place_info, current_recommendations]
+    )
+    
+    # Set up the export button
+    export_btn.click(
+        fn=export_itinerary_as_pdf,
+        inputs=[itinerary_state],
+        outputs=[gr.HTML(label="Printable Itinerary")]
+    )
+    
+    # Set up the share button
+    share_btn.click(
+        fn=share_itinerary,
+        inputs=[itinerary_state],
+        outputs=[gr.HTML(label="Share Link")]
     )
     
     gr.Markdown("### How to use")
@@ -1208,9 +2733,31 @@ with gr.Blocks(
         // Start observing the document with the configured parameters
         observer.observe(document.body, { childList: true, subtree: true });
     }
+    
+    // Function to update marker color on the map
+    function updateMarkerColor(placeId, color) {
+        console.log('Updating marker color for', placeId, 'to', color);
+        // Find the map iframe
+        const mapIframe = document.querySelector('.map-output iframe');
+        if (!mapIframe) {
+            console.error('Map iframe not found');
+            return;
+        }
+        
+        // Send a message to the iframe
+        try {
+            mapIframe.contentWindow.postMessage({
+                action: 'updateMarkerColor',
+                placeId: placeId,
+                color: color
+            }, '*');
+        } catch (e) {
+            console.error('Error sending message to map iframe:', e);
+        }
+    }
     </script>
     """)
 
 # Launch the app with server settings for Docker
 if __name__ == "__main__":
-    app.launch(server_name="0.0.0.0", server_port=7860) 
+    app.launch(server_name="0.0.0.0", server_port=7861) 

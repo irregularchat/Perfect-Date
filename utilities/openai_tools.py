@@ -475,3 +475,21 @@ def generate_date_ideas(
 
 # Add generate_event_ideas as an alias of generate_date_ideas
 generate_event_ideas = generate_date_ideas
+
+# Add the mock function for testing
+def mock_openai_api(enable=True):
+    """
+    Enable or disable mock mode for OpenAI API calls.
+    
+    Args:
+        enable (bool): Whether to enable mock mode
+        
+    Returns:
+        None
+    """
+    global _mock_enabled
+    _mock_enabled = enable
+    print(f"Mock mode for OpenAI API: {'enabled' if enable else 'disabled'}")
+
+# Global variable to track mock status
+_mock_enabled = False

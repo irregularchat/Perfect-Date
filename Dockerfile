@@ -13,7 +13,7 @@ RUN mkdir -p utilities static
 COPY app.py .
 COPY custom.css .
 COPY utilities/ ./utilities/
-COPY static/ ./static/
+# COPY static/ ./static/
 
 # Expose the port
 EXPOSE 7860

@@ -7,3 +7,4 @@ folium
 pytest
 pytest-mock
 pytest-cov
+pdfkit
