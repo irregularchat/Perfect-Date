@@ -1,0 +1,13 @@
+INFO:     Started server process [29882]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:1090 (Press CTRL+C to quit)
+⚠️  WARNING: GOOGLE_MAPS_API_KEY not set in environment
+   Location features will be limited
+🚀 Starting server at http://localhost:1090
+📁 Serving static files from /Users/admin/Documents/Git/Perfect-Date/modern-stack/backend/static
+INFO:     127.0.0.1:62376 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62683 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:63088 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64736 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65427 - "GET /?date=W3sidGltZSI6IjI6MDAgUE0iLCJhY3Rpdml0eSI6Ikx1bmNoIGF0IExvY2FsIEJpc3RybyIsImNvc3QiOjQwLCJsb2NhdGlvbiI6WzM1Ljc3OTYsLTc4LjYzODJdfSx7InRpbWUiOiIzOjMwIFBNIiwiYWN0aXZpdHkiOiJBcmNhZGUgJiBHYW1lcyIsImNvc3QiOjIwLCJsb2NhdGlvbiI6WzM1Ljc4MjYsLTc4LjYzNTJdfSx7InRpbWUiOiI1OjAwIFBNIiwiYWN0aXZpdHkiOiJIYXBweSBIb3VyIERyaW5rcyIsImNvc3QiOjMwLCJsb2NhdGlvbiI6WzM1Ljc4NDYwMDAwMDAwMDAwNSwtNzguNjMzMl19XQ== HTTP/1.1" 200 OK

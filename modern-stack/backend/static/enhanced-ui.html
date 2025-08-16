@@ -697,24 +697,53 @@
                 div.className = 'timeline-item bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg cursor-move';
                 div.dataset.index = index;
                 div.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center space-x-3">
-                            <span class="text-2xl">📍</span>
-                            <div>
-                                <div class="font-semibold editable" contenteditable="true" data-field="activity">${item.activity}</div>
-                                <div class="text-sm text-gray-600">
-                                    <span class="editable" contenteditable="true" data-field="time">${item.time}</span> • 
-                                    $<span class="editable" contenteditable="true" data-field="cost">${item.cost}</span>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-start space-x-3 flex-1">
+                                <span class="text-2xl">📍</span>
+                                <div class="flex-1">
+                                    <div class="font-semibold text-lg editable" contenteditable="true" data-field="activity">${item.activity}</div>
+                                    <div class="text-sm text-gray-600 mt-1">
+                                        <span class="editable" contenteditable="true" data-field="time">${item.time}</span> • 
+                                        $<span class="editable" contenteditable="true" data-field="cost">${item.cost}</span>
+                                    </div>
+                                    
+                                    <!-- Business Information -->
+                                    <div class="mt-3 p-3 bg-gray-50 rounded-lg" id="business-info-${index}">
+                                        <div class="text-sm space-y-1">
+                                            <div class="flex items-center space-x-2">
+                                                <span class="font-medium text-gray-700">📍 Address:</span>
+                                                <span class="text-gray-600">${generateMockAddress(item.location)}</span>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <span class="font-medium text-gray-700">⭐ Rating:</span>
+                                                <span class="text-yellow-600">${generateMockRating()} (${Math.floor(Math.random() * 200 + 50)} reviews)</span>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <span class="font-medium text-gray-700">🕒 Hours:</span>
+                                                <span class="text-green-600">${generateMockHours()}</span>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <span class="font-medium text-gray-700">📞 Phone:</span>
+                                                <span class="text-blue-600">${generateMockPhone()}</span>
+                                            </div>
+                                            <div class="flex space-x-3 mt-2">
+                                                <a href="#" onclick="openDirections(${item.location[0]}, ${item.location[1]})" class="text-blue-600 hover:underline text-xs">🗺️ Directions</a>
+                                                <a href="#" onclick="callBusiness('${generateMockPhone()}')" class="text-green-600 hover:underline text-xs">📞 Call</a>
+                                                <a href="#" onclick="viewWebsite('${item.activity}')" class="text-purple-600 hover:underline text-xs">🌐 Website</a>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button onclick="swapVenue(${index})" class="px-3 py-1 bg-white text-indigo-600 rounded hover:bg-indigo-50">
-                                🔄 Swap
-                            </button>
-                            <button onclick="removeActivity(${index})" class="px-3 py-1 bg-white text-red-600 rounded hover:bg-red-50">
-                                ✕
-                            </button>
+                            <div class="flex space-x-2 ml-4">
+                                <button onclick="swapVenue(${index})" class="px-3 py-1 bg-white text-indigo-600 rounded hover:bg-indigo-50 text-sm">
+                                    🔄 Swap
+                                </button>
+                                <button onclick="removeActivity(${index})" class="px-3 py-1 bg-white text-red-600 rounded hover:bg-red-50 text-sm">
+                                    ✕
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -788,25 +817,101 @@
         }
 
         function swapVenue(index) {
-            // Show alternative venues
-            const alternatives = [
-                'Starbucks Reserve', 'Local Art Gallery', 'Botanical Gardens',
-                'Rooftop Bar', 'Comedy Club', 'Escape Room'
-            ];
+            const currentActivity = timeline[index];
             
-            const altHtml = alternatives.map(alt => `
-                <div class="venue-card p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-indigo-50" onclick="replaceVenue(${index}, '${alt}')">
-                    <div class="font-medium">${alt}</div>
-                    <div class="text-sm text-gray-600">⭐ 4.5 • $$ • 0.5 mi</div>
+            // Generate alternative venues with full business details
+            const alternatives = generateAlternativeVenues(currentActivity.activity);
+            
+            const altHtml = alternatives.map((alt, altIndex) => `
+                <div class="venue-card p-4 bg-white rounded-lg shadow cursor-pointer hover:shadow-lg transition-all border" onclick="replaceVenue(${index}, ${altIndex})">
+                    <div class="space-y-2">
+                        <div class="font-semibold text-lg">${alt.name}</div>
+                        <div class="flex items-center space-x-3 text-sm">
+                            <span class="text-yellow-600">⭐ ${alt.rating}</span>
+                            <span class="text-gray-600">${alt.priceLevel}</span>
+                            <span class="text-blue-600">${alt.distance}</span>
+                        </div>
+                        <div class="text-sm text-gray-600">${alt.address}</div>
+                        <div class="text-sm">
+                            <span class="font-medium">📞</span> ${alt.phone}
+                        </div>
+                        <div class="text-xs text-green-600">${alt.hours}</div>
+                        <div class="text-sm text-gray-700">${alt.description}</div>
+                    </div>
                 </div>
             `).join('');
             
-            document.getElementById('alternatives').innerHTML = altHtml;
+            document.getElementById('alternatives').innerHTML = `
+                <div class="mb-4">
+                    <h4 class="font-semibold text-gray-900">Alternative venues for "${currentActivity.activity}":</h4>
+                    <p class="text-sm text-gray-600">Click on any venue to replace it in your timeline</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    ${altHtml}
+                </div>
+            `;
             document.getElementById('alternatives').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function replaceVenue(index, newVenue) {
-            timeline[index].activity = newVenue;
+        function generateAlternativeVenues(currentActivity) {
+            // Generate different alternatives based on activity type
+            const venueTypes = {
+                'coffee': ['Blue Moon Cafe', 'Roasted Bean Coffee', 'The Daily Grind', 'Corner Coffee Shop'],
+                'restaurant': ['Bella Vista Italian', 'The Steakhouse', 'Garden Bistro', 'Local Farm Table'],
+                'bar': ['The Tap Room', 'Vintage Wine Bar', 'Craft Beer Hall', 'Cocktail Lounge'],
+                'entertainment': ['Zone Entertainment', 'GameTime Arcade', 'Strike Zone Bowling', 'Fun Factory'],
+                'default': ['Popular Local Spot', 'Trending Venue', 'Customer Favorite', 'Hidden Gem']
+            };
+
+            let categoryOptions = venueTypes.default;
+            if (currentActivity.toLowerCase().includes('coffee') || currentActivity.toLowerCase().includes('cafe')) {
+                categoryOptions = venueTypes.coffee;
+            } else if (currentActivity.toLowerCase().includes('lunch') || currentActivity.toLowerCase().includes('dinner') || currentActivity.toLowerCase().includes('bistro')) {
+                categoryOptions = venueTypes.restaurant;
+            } else if (currentActivity.toLowerCase().includes('drinks') || currentActivity.toLowerCase().includes('bar')) {
+                categoryOptions = venueTypes.bar;
+            } else if (currentActivity.toLowerCase().includes('arcade') || currentActivity.toLowerCase().includes('games') || currentActivity.toLowerCase().includes('bowling')) {
+                categoryOptions = venueTypes.entertainment;
+            }
+
+            return categoryOptions.map(name => ({
+                name: name,
+                rating: generateMockRating(),
+                priceLevel: ['$', '$$', '$$$'][Math.floor(Math.random() * 3)],
+                distance: `${(Math.random() * 2 + 0.1).toFixed(1)} mi`,
+                address: generateMockAddress(),
+                phone: generateMockPhone(),
+                hours: generateMockHours(),
+                description: generateVenueDescription(name)
+            }));
+        }
+
+        function generateVenueDescription(name) {
+            const descriptions = [
+                'Highly rated local favorite with great atmosphere',
+                'Known for excellent service and quality',
+                'Popular spot with locals and visitors alike',
+                'Cozy setting perfect for a great time',
+                'Award-winning establishment with unique charm',
+                'Modern venue with classic touches'
+            ];
+            return descriptions[Math.floor(Math.random() * descriptions.length)];
+        }
+
+        function replaceVenue(timelineIndex, venueIndex) {
+            const alternatives = generateAlternativeVenues(timeline[timelineIndex].activity);
+            const newVenue = alternatives[venueIndex];
+            
+            // Update timeline with new venue
+            timeline[timelineIndex].activity = newVenue.name;
+            
+            // Clear alternatives section
+            document.getElementById('alternatives').innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <p>✅ Venue updated! Click "🔄 Swap" on any activity to see more alternatives.</p>
+                </div>
+            `;
+            
             renderTimeline();
             addMarkersToMap();
         }
@@ -844,6 +949,52 @@
             a.href = url;
             a.download = 'perfect-date.ics';
             a.click();
+        }
+
+        // Generate realistic business information
+        function generateMockAddress(location) {
+            const streetNumbers = [123, 456, 789, 1234, 567];
+            const streetNames = ['Main St', 'Oak Ave', 'Elm Dr', 'Pine Rd', 'Cedar Way', 'Market St', 'University Dr'];
+            const number = streetNumbers[Math.floor(Math.random() * streetNumbers.length)];
+            const street = streetNames[Math.floor(Math.random() * streetNames.length)];
+            return `${number} ${street}, Fayetteville, NC`;
+        }
+
+        function generateMockRating() {
+            const ratings = ['4.2', '4.5', '4.1', '4.7', '4.3', '4.6', '4.4'];
+            return ratings[Math.floor(Math.random() * ratings.length)];
+        }
+
+        function generateMockHours() {
+            const currentHour = new Date().getHours();
+            if (currentHour >= 9 && currentHour < 22) {
+                return 'Open now • Closes 10:00 PM';
+            } else if (currentHour >= 22 || currentHour < 6) {
+                return 'Closed • Opens 9:00 AM';
+            } else {
+                return 'Opens soon • 9:00 AM';
+            }
+        }
+
+        function generateMockPhone() {
+            return `(910) ${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 9000 + 1000)}`;
+        }
+
+        // Business interaction functions
+        function openDirections(lat, lng) {
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+            window.open(url, '_blank');
+        }
+
+        function callBusiness(phone) {
+            window.location.href = `tel:${phone}`;
+        }
+
+        function viewWebsite(businessName) {
+            // Generate a mock website or search
+            const searchQuery = encodeURIComponent(businessName + ' Fayetteville NC');
+            const url = `https://www.google.com/search?q=${searchQuery}`;
+            window.open(url, '_blank');
         }
 
         // Quick vibe selection for classic form

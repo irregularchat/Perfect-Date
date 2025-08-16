@@ -287,7 +287,7 @@ if __name__ == "__main__":
     else:
         print("✅ Google Maps API configured")
     
-    print(f"🚀 Starting server at http://localhost:8000")
+    print(f"🚀 Starting server at http://localhost:1090")
     print(f"📁 Serving static files from {STATIC_DIR}")
     
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=1090)
