@@ -727,10 +727,17 @@
                                                 <span class="font-medium text-gray-700">📞 Phone:</span>
                                                 <span class="text-blue-600">${generateMockPhone()}</span>
                                             </div>
-                                            <div class="flex space-x-3 mt-2">
-                                                <a href="#" onclick="openDirections(${item.location[0]}, ${item.location[1]})" class="text-blue-600 hover:underline text-xs">🗺️ Directions</a>
-                                                <a href="#" onclick="callBusiness('${generateMockPhone()}')" class="text-green-600 hover:underline text-xs">📞 Call</a>
-                                                <a href="#" onclick="viewWebsite('${item.activity}')" class="text-purple-600 hover:underline text-xs">🌐 Website</a>
+                                            <div class="flex flex-wrap gap-2 mt-2">
+                                                <div class="relative">
+                                                    <button onclick="showDirectionsMenu(${item.location[0]}, ${item.location[1]}, ${index})" class="text-blue-600 hover:underline text-xs bg-blue-50 px-2 py-1 rounded">🗺️ Directions</button>
+                                                    <div id="directions-menu-${index}" class="hidden absolute top-6 left-0 bg-white border rounded shadow-lg z-10 min-w-36">
+                                                        <a href="#" onclick="openSmartMaps(${item.location[0]}, ${item.location[1]})" class="block px-3 py-2 text-xs hover:bg-blue-100 font-medium border-b">🎯 Auto-detect</a>
+                                                        <a href="#" onclick="openAppleMaps(${item.location[0]}, ${item.location[1]})" class="block px-3 py-2 text-xs hover:bg-gray-100">🍎 Apple Maps</a>
+                                                        <a href="#" onclick="openGoogleMaps(${item.location[0]}, ${item.location[1]})" class="block px-3 py-2 text-xs hover:bg-gray-100">🌐 Google Maps</a>
+                                                    </div>
+                                                </div>
+                                                <a href="#" onclick="callBusiness('${generateMockPhone()}')" class="text-green-600 hover:underline text-xs bg-green-50 px-2 py-1 rounded">📞 Call</a>
+                                                <a href="#" onclick="viewWebsite('${item.activity}')" class="text-purple-600 hover:underline text-xs bg-purple-50 px-2 py-1 rounded">🌐 Website</a>
                                             </div>
                                         </div>
                                     </div>
@@ -981,9 +988,69 @@
         }
 
         // Business interaction functions
-        function openDirections(lat, lng) {
+        function showDirectionsMenu(lat, lng, index) {
+            // Hide all other direction menus first
+            document.querySelectorAll('[id^="directions-menu-"]').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+            
+            // Show the clicked menu
+            const menu = document.getElementById(`directions-menu-${index}`);
+            menu.classList.toggle('hidden');
+            
+            // Close menu when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!e.target.closest(`#directions-menu-${index}`) && !e.target.closest(`button[onclick*="showDirectionsMenu"]`)) {
+                        menu.classList.add('hidden');
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 100);
+        }
+
+        function openAppleMaps(lat, lng) {
+            // Hide any open menus
+            document.querySelectorAll('[id^="directions-menu-"]').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+            
+            // Apple Maps URL scheme
+            const url = `http://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+            window.open(url, '_blank');
+        }
+
+        function openGoogleMaps(lat, lng) {
+            // Hide any open menus
+            document.querySelectorAll('[id^="directions-menu-"]').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+            
+            // Google Maps URL
             const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
             window.open(url, '_blank');
+        }
+
+        function openSmartMaps(lat, lng) {
+            // Hide any open menus
+            document.querySelectorAll('[id^="directions-menu-"]').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+            
+            // Detect device and open appropriate maps app
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            
+            // Check if it's an iOS device
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                // iOS device - prefer Apple Maps
+                openAppleMaps(lat, lng);
+            } else if (/android/i.test(userAgent)) {
+                // Android device - prefer Google Maps
+                openGoogleMaps(lat, lng);
+            } else {
+                // Desktop or other - use Google Maps
+                openGoogleMaps(lat, lng);
+            }
         }
 
         function callBusiness(phone) {
