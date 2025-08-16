@@ -13,11 +13,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import googlemaps
 from datetime import datetime
-import uvicorn
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Try to load .env file if it exists
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not installed, use system environment variables
+
+import uvicorn
 
 app = FastAPI(title="Perfect Date Generator")
 
@@ -244,7 +248,7 @@ def enhance_with_real_places(activities: List[Dict], center: tuple) -> List[Dict
     
     return enhanced
 
-@app.post("/api/search-places")
+@app.get("/api/search-places")
 async def search_places(query: str, location: str, radius: int = 5000):
     """Search for places near a location"""
     if not gmaps:
