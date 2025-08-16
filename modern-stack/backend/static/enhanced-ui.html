@@ -300,6 +300,48 @@
         let map = null;
         let timeline = [];
         let markers = [];
+        
+        // Real business locations in Fayetteville, NC
+        const fayettevilleBusinesses = {
+            // Coffee & Cafes
+            'Blue Moon Cafe': [35.0526, -78.8783], // Downtown Fayetteville
+            'Rowan Street Coffee': [35.0538, -78.8799],
+            'Sweet Creams Ice Cream': [35.0515, -78.8756],
+            'Sweet Dreams Creamery': [35.0515, -78.8756],
+            
+            // Restaurants  
+            'Garden Bistro': [35.0541, -78.8812], // Cross Creek Mall area
+            'Bella Vista Italian': [35.0498, -78.8734], // Downtown
+            'Family Farm Table': [35.0553, -78.8823],
+            'Luigi\'s Italian Restaurant': [35.0487, -78.8721],
+            
+            // Entertainment
+            'Strike Zone Bowling': [35.0612, -78.8892], // Skibo Road area
+            'Fun Zone Entertainment': [35.0456, -78.8678], // Hope Mills Road
+            'Escape Room Fayetteville': [35.0521, -78.8791],
+            
+            // Bars & Nightlife
+            'The Tap Room': [35.0531, -78.8789], // Downtown area
+            'Sky Lounge': [35.0543, -78.8801], // Ramsey Street
+            'The Local Pub': [35.0518, -78.8776],
+            'Sing-Along Bar': [35.0498, -78.8745],
+            
+            // Recreation & Attractions
+            'Cape Fear River Trail': [35.0445, -78.8912], // River area
+            'Festival Park': [35.0578, -78.8845], // North Fayetteville
+            'Serenity Day Spa': [35.0556, -78.8834], // Ramsey Street
+            'Discovery Place Science': [35.0489, -78.8712], // Museum district
+            'Music Hall Downtown': [35.0523, -78.8785], // Downtown arts district
+            
+            // Shopping & Services
+            'Strike Zone Lanes': [35.0634, -78.8923], // North side
+            'Music Venue Downtown': [35.0514, -78.8771]
+        };
+        
+        // Function to get real coordinates for a business
+        function getBusinessLocation(businessName) {
+            return fayettevilleBusinesses[businessName] || [35.0526, -78.8783]; // Default to downtown
+        }
 
         // Form mode toggle
         function toggleFormMode() {
@@ -680,31 +722,31 @@
             // Different activity sets based on event type and vibes
             const activitySets = {
                 'first_date': [
-                    { time: '6:00 PM', activity: 'Coffee', businessName: 'Blue Moon Cafe', cost: 15, location: [baseLat, baseLng] },
-                    { time: '7:00 PM', activity: 'Mini Golf & Ice Cream', businessName: 'Fun Zone Entertainment', cost: 25, location: [baseLat + 0.002, baseLng + 0.002] },
-                    { time: '8:30 PM', activity: 'Sunset Walk', businessName: 'Cape Fear River Trail', cost: 0, location: [baseLat + 0.004, baseLng + 0.004] }
+                    { time: '6:00 PM', activity: 'Coffee', businessName: 'Blue Moon Cafe', cost: 15, location: getBusinessLocation('Blue Moon Cafe') },
+                    { time: '7:00 PM', activity: 'Mini Golf & Ice Cream', businessName: 'Fun Zone Entertainment', cost: 25, location: getBusinessLocation('Fun Zone Entertainment') },
+                    { time: '8:30 PM', activity: 'Sunset Walk', businessName: 'Cape Fear River Trail', cost: 0, location: getBusinessLocation('Cape Fear River Trail') }
                 ],
                 'casual_dating': [
-                    { time: '2:00 PM', activity: 'Lunch', businessName: 'Garden Bistro', cost: 40, location: [baseLat, baseLng] },
-                    { time: '3:30 PM', activity: 'Arcade & Games', businessName: 'Strike Zone Bowling', cost: 20, location: [baseLat + 0.003, baseLng + 0.003] },
-                    { time: '5:00 PM', activity: 'Happy Hour Drinks', businessName: 'The Tap Room', cost: 30, location: [baseLat + 0.005, baseLng + 0.005] },
-                    { time: '6:30 PM', activity: 'Live Music', businessName: 'Music Hall Downtown', cost: 25, location: [baseLat + 0.007, baseLng + 0.007] }
+                    { time: '2:00 PM', activity: 'Lunch', businessName: 'Garden Bistro', cost: 40, location: getBusinessLocation('Garden Bistro') },
+                    { time: '3:30 PM', activity: 'Arcade & Games', businessName: 'Strike Zone Bowling', cost: 20, location: getBusinessLocation('Strike Zone Bowling') },
+                    { time: '5:00 PM', activity: 'Happy Hour Drinks', businessName: 'The Tap Room', cost: 30, location: getBusinessLocation('The Tap Room') },
+                    { time: '6:30 PM', activity: 'Live Music', businessName: 'Music Hall Downtown', cost: 25, location: getBusinessLocation('Music Hall Downtown') }
                 ],
                 'married_date': [
-                    { time: '5:00 PM', activity: 'Couples Spa', businessName: 'Serenity Day Spa', cost: 150, location: [baseLat, baseLng] },
-                    { time: '7:00 PM', activity: 'Fine Dining', businessName: 'Bella Vista Italian', cost: 120, location: [baseLat + 0.004, baseLng + 0.004] },
-                    { time: '9:00 PM', activity: 'Rooftop Bar & Dancing', businessName: 'Sky Lounge', cost: 40, location: [baseLat + 0.006, baseLng + 0.006] }
+                    { time: '5:00 PM', activity: 'Couples Spa', businessName: 'Serenity Day Spa', cost: 150, location: getBusinessLocation('Serenity Day Spa') },
+                    { time: '7:00 PM', activity: 'Fine Dining', businessName: 'Bella Vista Italian', cost: 120, location: getBusinessLocation('Bella Vista Italian') },
+                    { time: '9:00 PM', activity: 'Rooftop Bar & Dancing', businessName: 'Sky Lounge', cost: 40, location: getBusinessLocation('Sky Lounge') }
                 ],
                 'friends_night': [
-                    { time: '6:00 PM', activity: 'Bowling & Appetizers', businessName: 'Strike Zone Lanes', cost: 35, location: [baseLat, baseLng] },
-                    { time: '8:00 PM', activity: 'Trivia Night', businessName: 'The Local Pub', cost: 25, location: [baseLat + 0.003, baseLng + 0.003] },
-                    { time: '10:00 PM', activity: 'Karaoke', businessName: 'Sing-Along Bar', cost: 20, location: [baseLat + 0.005, baseLng + 0.005] }
+                    { time: '6:00 PM', activity: 'Bowling & Appetizers', businessName: 'Strike Zone Lanes', cost: 35, location: getBusinessLocation('Strike Zone Lanes') },
+                    { time: '8:00 PM', activity: 'Trivia Night', businessName: 'The Local Pub', cost: 25, location: getBusinessLocation('The Local Pub') },
+                    { time: '10:00 PM', activity: 'Karaoke', businessName: 'Sing-Along Bar', cost: 20, location: getBusinessLocation('Sing-Along Bar') }
                 ],
                 'family_outing': [
-                    { time: '11:00 AM', activity: 'Science Museum', businessName: 'Discovery Place Science', cost: 60, location: [baseLat, baseLng] },
-                    { time: '1:00 PM', activity: 'Family Restaurant', businessName: 'Family Farm Table', cost: 80, location: [baseLat + 0.002, baseLng + 0.002] },
-                    { time: '3:00 PM', activity: 'Park & Playground', businessName: 'Festival Park', cost: 0, location: [baseLat + 0.004, baseLng + 0.004] },
-                    { time: '5:00 PM', activity: 'Ice Cream', businessName: 'Sweet Dreams Creamery', cost: 20, location: [baseLat + 0.006, baseLng + 0.006] }
+                    { time: '11:00 AM', activity: 'Science Museum', businessName: 'Discovery Place Science', cost: 60, location: getBusinessLocation('Discovery Place Science') },
+                    { time: '1:00 PM', activity: 'Family Restaurant', businessName: 'Family Farm Table', cost: 80, location: getBusinessLocation('Family Farm Table') },
+                    { time: '3:00 PM', activity: 'Park & Playground', businessName: 'Festival Park', cost: 0, location: getBusinessLocation('Festival Park') },
+                    { time: '5:00 PM', activity: 'Ice Cream', businessName: 'Sweet Dreams Creamery', cost: 20, location: getBusinessLocation('Sweet Dreams Creamery') }
                 ]
             };
 
@@ -719,8 +761,9 @@
                 activities.push({ 
                     time: '9:00 PM', 
                     activity: '🎯 Escape Room Challenge', 
+                    businessName: 'Escape Room Fayetteville',
                     cost: 35, 
-                    location: [baseLat + 0.008, baseLng + 0.008] 
+                    location: getBusinessLocation('Escape Room Fayetteville')
                 });
             }
             if (vibes.includes('cultural')) {
@@ -1318,8 +1361,14 @@
                     const baseLng = -78.8783;
                     
                     decodedTimeline.forEach((item, index) => {
-                        // Update coordinates to be around Fayetteville instead of old location
-                        item.location = [baseLat + (index * 0.003), baseLng + (index * 0.003)];
+                        // Update coordinates to use real business locations
+                        if (item.businessName) {
+                            const realLocation = getBusinessLocation(item.businessName);
+                            item.location = realLocation;
+                        } else {
+                            // Fallback to downtown Fayetteville if no business name
+                            item.location = [35.0526, -78.8783];
+                        }
                     });
                     
                     timeline = decodedTimeline;
