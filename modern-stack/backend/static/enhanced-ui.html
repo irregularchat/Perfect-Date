@@ -876,86 +876,9 @@
                 }
             } catch (error) {
                 console.error('Failed to get real places from API:', error);
+                alert('Unable to generate date recommendations. Please check your internet connection and try again.');
+                return;
             }
-
-            // Fallback to mock data if API fails
-            console.log('Using fallback mock data');
-            
-            // Different activity sets based on event type and vibes
-            const activitySets = {
-                'first_date': [
-                    { time: '6:00 PM', activity: 'Coffee', businessName: 'Blue Moon Cafe', cost: 15, location: getBusinessLocation('Blue Moon Cafe') },
-                    { time: '7:00 PM', activity: 'Mini Golf & Ice Cream', businessName: 'Fun Zone Entertainment', cost: 25, location: getBusinessLocation('Fun Zone Entertainment') },
-                    { time: '8:30 PM', activity: 'Sunset Walk', businessName: 'Cape Fear River Trail', cost: 0, location: getBusinessLocation('Cape Fear River Trail') }
-                ],
-                'casual_dating': [
-                    { time: '2:00 PM', activity: 'Lunch', businessName: 'Garden Bistro', cost: 40, location: getBusinessLocation('Garden Bistro') },
-                    { time: '3:30 PM', activity: 'Arcade & Games', businessName: 'Strike Zone Bowling', cost: 20, location: getBusinessLocation('Strike Zone Bowling') },
-                    { time: '5:00 PM', activity: 'Happy Hour Drinks', businessName: 'The Tap Room', cost: 30, location: getBusinessLocation('The Tap Room') },
-                    { time: '6:30 PM', activity: 'Live Music', businessName: 'Music Hall Downtown', cost: 25, location: getBusinessLocation('Music Hall Downtown') }
-                ],
-                'married_date': [
-                    { time: '5:00 PM', activity: 'Couples Spa', businessName: 'Serenity Day Spa', cost: 150, location: getBusinessLocation('Serenity Day Spa') },
-                    { time: '7:00 PM', activity: 'Fine Dining', businessName: 'Bella Vista Italian', cost: 120, location: getBusinessLocation('Bella Vista Italian') },
-                    { time: '9:00 PM', activity: 'Rooftop Bar & Dancing', businessName: 'Sky Lounge', cost: 40, location: getBusinessLocation('Sky Lounge') }
-                ],
-                'friends_night': [
-                    { time: '6:00 PM', activity: 'Bowling & Appetizers', businessName: 'Strike Zone Lanes', cost: 35, location: getBusinessLocation('Strike Zone Lanes') },
-                    { time: '8:00 PM', activity: 'Trivia Night', businessName: 'The Local Pub', cost: 25, location: getBusinessLocation('The Local Pub') },
-                    { time: '10:00 PM', activity: 'Karaoke', businessName: 'Sing-Along Bar', cost: 20, location: getBusinessLocation('Sing-Along Bar') }
-                ],
-                'family_outing': [
-                    { time: '11:00 AM', activity: 'Science Museum', businessName: 'Discovery Place Science', cost: 60, location: getBusinessLocation('Discovery Place Science') },
-                    { time: '1:00 PM', activity: 'Family Restaurant', businessName: 'Family Farm Table', cost: 80, location: getBusinessLocation('Family Farm Table') },
-                    { time: '3:00 PM', activity: 'Park & Playground', businessName: 'Festival Park', cost: 0, location: getBusinessLocation('Festival Park') },
-                    { time: '5:00 PM', activity: 'Ice Cream', businessName: 'Sweet Dreams Creamery', cost: 20, location: getBusinessLocation('Sweet Dreams Creamery') }
-                ]
-            };
-
-            // Adjust activities based on vibes
-            let activities = activitySets[eventType] || activitySets['casual_dating'];
-            
-            // Modify based on selected vibes
-            if (vibes.includes('romantic')) {
-                activities[0].activity = '🌹 ' + activities[0].activity;
-            }
-            if (vibes.includes('adventurous')) {
-                activities.push({ 
-                    time: '9:00 PM', 
-                    activity: '🎯 Escape Room Challenge', 
-                    businessName: 'Escape Room Fayetteville',
-                    cost: 35, 
-                    location: getBusinessLocation('Escape Room Fayetteville')
-                });
-            }
-            if (vibes.includes('cultural')) {
-                activities[1] = { 
-                    time: activities[1].time, 
-                    activity: '🎨 Art Gallery Tour', 
-                    cost: 15, 
-                    location: activities[1].location 
-                };
-            }
-            
-            // Adjust to budget
-            if (budget < 50) {
-                activities = activities.map(a => ({
-                    ...a,
-                    activity: a.activity.includes('Fine Dining') ? 'Casual Dining' : a.activity,
-                    cost: Math.min(a.cost, 15)
-                }));
-            }
-            
-            // Adjust to time available
-            activities = activities.slice(0, Math.min(activities.length, Math.ceil(hours / 1.5)));
-            
-            timeline = activities;
-            console.log('Created timeline with coordinates:', timeline.map(item => ({
-                name: item.businessName,
-                coordinates: item.location
-            })));
-            renderTimeline();
-            addMarkersToMap();
         }
 
         // Initialize interactive map with user's location

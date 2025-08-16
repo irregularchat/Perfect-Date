@@ -129,7 +129,7 @@ async def generate_date(request: DateRequest):
     
     # Find real places if Google Maps is available
     if gmaps:
-        activities = enhance_with_real_places(activities, (lat, lng))
+        activities = enhance_with_real_places(activities, (lat, lng), request.vibes)
     
     return {
         "success": True,
@@ -198,28 +198,103 @@ def generate_activities(event_type: str, budget: int, vibes: List[str],
     
     return activities
 
-def enhance_with_real_places(activities: List[Dict], center: tuple) -> List[Dict]:
-    """Enhance activities with real Google Places data"""
+def generate_smart_search_query(activity_name: str, activity_type: str, vibes: List[str] = None) -> str:
+    """Generate intelligent search queries based on activity context and vibes"""
+    vibes = vibes or []
+    
+    # Context-aware search mapping
+    search_queries = {
+        # Dining activities
+        "Lunch Together": ["upscale casual restaurant", "bistro", "farm-to-table restaurant", "local favorite restaurant"],
+        "Fine Dining": ["fine dining restaurant", "upscale restaurant", "romantic restaurant", "michelin restaurant"],
+        "Coffee & Conversation": ["specialty coffee shop", "local coffee roastery", "artisan coffee", "cozy cafe"],
+        "Dessert & Walk": ["dessert shop", "ice cream parlor", "bakery cafe", "gelato shop"],
+        "Drinks & Appetizers": ["craft cocktail bar", "wine bar", "gastropub", "rooftop bar"],
+        
+        # Entertainment activities  
+        "Mini Golf Fun": ["mini golf", "family entertainment center", "adventure golf", "putt putt"],
+        "Activity Time": ["entertainment venue", "arcade", "bowling alley", "escape room"],
+        "Live Entertainment": ["live music venue", "jazz club", "concert hall", "theater"],
+        "Dancing & Drinks": ["dance club", "salsa club", "nightclub with dancing", "live music bar"],
+        
+        # Wellness activities
+        "Couples Spa": ["couples spa", "day spa", "wellness center", "massage therapy"],
+        
+        # Default fallbacks
+        "restaurant": ["restaurant", "dining"],
+        "entertainment": ["entertainment", "activities"], 
+        "bar": ["bar", "pub"],
+        "spa": ["spa", "wellness"]
+    }
+    
+    # Get base queries for this activity
+    base_queries = search_queries.get(activity_name, search_queries.get(activity_type, ["restaurant"]))
+    
+    # Modify based on vibes
+    if "romantic" in vibes:
+        if activity_type == "restaurant":
+            base_queries = ["romantic restaurant", "intimate dining", "date night restaurant"]
+        elif activity_type == "bar":
+            base_queries = ["romantic bar", "wine bar", "intimate lounge"]
+        elif activity_type == "entertainment":
+            base_queries = ["romantic activities", "couples entertainment", "date night activities"]
+    
+    if "adventurous" in vibes:
+        if activity_type == "entertainment":
+            base_queries = ["adventure activities", "escape room", "rock climbing", "unique experiences"]
+        
+    if "cultural" in vibes:
+        if activity_type == "entertainment":
+            base_queries = ["art gallery", "museum", "cultural center", "theater"]
+            
+    # Return a random query from the options for variety
+    import random
+    return random.choice(base_queries)
+
+def enhance_with_real_places(activities: List[Dict], center: tuple, vibes: List[str] = None) -> List[Dict]:
+    """Enhance activities with real Google Places data using intelligent search"""
     if not gmaps:
         return activities
     
     enhanced = []
+    used_place_ids = set()  # Track used places to ensure diversity
+    
     for activity in activities:
         try:
-            # Search for places matching the activity type
-            places_result = gmaps.places_nearby(
+            # Generate intelligent search query
+            search_query = generate_smart_search_query(
+                activity.get("activity", ""), 
+                activity.get("type", ""), 
+                vibes
+            )
+            
+            print(f"Searching for: '{search_query}' for activity '{activity.get('activity')}'")
+            
+            # Use text search for more relevant results
+            places_result = gmaps.places(
+                query=search_query,
                 location=center,
-                radius=5000,
-                type=activity.get("type", "restaurant"),
+                radius=8000,  # Increased radius for better results
                 language="en"
             )
             
+            # Find the first place that hasn't been used yet
+            selected_place = None
             if places_result.get("results"):
-                place = places_result["results"][0]  # Get top result
+                for place in places_result["results"]:
+                    if place["place_id"] not in used_place_ids:
+                        selected_place = place
+                        used_place_ids.add(place["place_id"])
+                        break
                 
+                # If all places were used, use the first one anyway
+                if not selected_place and places_result["results"]:
+                    selected_place = places_result["results"][0]
+            
+            if selected_place:
                 # Get detailed place info
                 place_details = gmaps.place(
-                    place_id=place["place_id"],
+                    place_id=selected_place["place_id"],
                     fields=["name", "formatted_address", "rating", "price_level", 
                            "geometry", "opening_hours", "website", "formatted_phone_number"]
                 )
@@ -234,13 +309,25 @@ def enhance_with_real_places(activities: List[Dict], center: tuple) -> List[Dict
                         "lat": detail["geometry"]["location"]["lat"],
                         "lng": detail["geometry"]["location"]["lng"]
                     }
-                    activity["place_id"] = place["place_id"]
+                    activity["place_id"] = selected_place["place_id"]
                     activity["website"] = detail.get("website", "")
                     activity["phone"] = detail.get("formatted_phone_number", "")
                     
                     # Check if currently open
                     if detail.get("opening_hours"):
                         activity["open_now"] = detail["opening_hours"].get("open_now", None)
+                        
+                    # Set appropriate estimated cost based on rating and price level
+                    price_level = activity.get("price_level", 2)
+                    base_cost = 20 + (price_level * 20)  # $20-$100 range
+                    activity["estimated_cost"] = base_cost
+                    
+                    print(f"Found: {activity['place_name']} - {activity['address']}")
+                else:
+                    print(f"Could not get details for place: {selected_place.get('name')}")
+            else:
+                print(f"No places found for query: {search_query}")
+                
         except Exception as e:
             print(f"Error enhancing place: {e}")
         
