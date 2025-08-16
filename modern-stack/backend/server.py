@@ -22,8 +22,97 @@ except ImportError:
     pass  # dotenv not installed, use system environment variables
 
 import uvicorn
+import math
 
 app = FastAPI(title="Perfect Date Generator")
+
+# Geographic calculation utilities
+def haversine_distance(coord1: tuple, coord2: tuple) -> float:
+    """
+    Calculate the great circle distance between two points on Earth in kilometers
+    using the Haversine formula
+    
+    Args:
+        coord1: (latitude, longitude) tuple for point 1
+        coord2: (latitude, longitude) tuple for point 2
+    
+    Returns:
+        Distance in kilometers
+    """
+    lat1, lon1 = coord1
+    lat2, lon2 = coord2
+    
+    # Convert decimal degrees to radians
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    
+    # Haversine formula
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    
+    # Radius of Earth in kilometers
+    r = 6371
+    
+    return c * r
+
+def calculate_midpoint_and_radius(location1: tuple, location2: tuple) -> tuple:
+    """
+    Calculate optimal meeting point and search radius for two locations
+    
+    Args:
+        location1: (lat, lng) tuple for person 1
+        location2: (lat, lng) tuple for person 2
+    
+    Returns:
+        (midpoint, radius) where midpoint is (lat, lng) and radius is in meters
+    """
+    if location1 == location2:
+        # Same location, use small radius around that point
+        return location1, 5000
+    
+    # Calculate geographic midpoint using spherical geometry
+    lat1, lon1 = map(math.radians, location1)
+    lat2, lon2 = map(math.radians, location2)
+    
+    # Convert to cartesian coordinates
+    x1 = math.cos(lat1) * math.cos(lon1)
+    y1 = math.cos(lat1) * math.sin(lon1)
+    z1 = math.sin(lat1)
+    
+    x2 = math.cos(lat2) * math.cos(lon2)
+    y2 = math.cos(lat2) * math.sin(lon2)
+    z2 = math.sin(lat2)
+    
+    # Average the cartesian coordinates
+    x = (x1 + x2) / 2
+    y = (y1 + y2) / 2
+    z = (z1 + z2) / 2
+    
+    # Convert back to spherical coordinates
+    hyp = math.sqrt(x * x + y * y)
+    midpoint_lat = math.atan2(z, hyp)
+    midpoint_lon = math.atan2(y, x)
+    
+    # Convert back to degrees
+    midpoint = (math.degrees(midpoint_lat), math.degrees(midpoint_lon))
+    
+    # Calculate search radius based on distance between locations
+    distance_km = haversine_distance(location1, location2)
+    
+    # Smart radius based on distance (from roadmap specifications)
+    if distance_km < 8:      # Close by (< 5 miles)
+        radius = min(4800, distance_km * 1000 * 0.6)  # 60%, max 3 miles
+    elif distance_km < 32:   # Medium distance (< 20 miles)
+        radius = min(16000, distance_km * 1000 * 0.4) # 40%, max 10 miles
+    elif distance_km < 80:   # Long distance (< 50 miles)
+        radius = min(24000, distance_km * 1000 * 0.3) # 30%, max 15 miles
+    else:                    # Very long distance
+        radius = min(40000, distance_km * 1000 * 0.2) # 20%, max 25 miles
+    
+    print(f"Calculated midpoint {midpoint} with radius {radius}m for locations {distance_km:.1f}km apart")
+    
+    return midpoint, int(radius)
 
 # Configure CORS
 app.add_middleware(
