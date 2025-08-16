@@ -88,9 +88,9 @@
                     <div class="space-y-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Event Type</label>
-                            <select id="eventType" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <select id="eventType" onchange="dateData.eventType = this.value" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                                 <option value="first_date">First Date</option>
-                                <option value="casual_dating">Casual Dating</option>
+                                <option value="casual_dating" selected>Casual Dating</option>
                                 <option value="married_date">Married Date</option>
                                 <option value="friends_night">Night with Friends</option>
                                 <option value="family_outing">Family Outing</option>
@@ -200,12 +200,36 @@
         <div id="classicForm" class="bg-white rounded-2xl shadow-xl p-8 mb-8">
             <h2 class="text-2xl font-bold mb-6">Plan Your Perfect Date</h2>
             <form id="dateForm" class="space-y-4">
-                <!-- Quick form fields -->
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="text" id="quickLocation" placeholder="Location" class="px-4 py-2 border rounded-lg">
-                    <input type="number" id="quickBudget" placeholder="Budget ($)" class="px-4 py-2 border rounded-lg">
+                <!-- Location with geolocation button -->
+                <div class="flex space-x-2">
+                    <input type="text" id="quickLocation" placeholder="Location" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <button type="button" onclick="getQuickLocation()" id="quickLocationBtn" class="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                        📍 Use My Location
+                    </button>
                 </div>
-                <button type="submit" class="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg">
+                
+                <!-- Budget and other options -->
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="quickBudget" placeholder="Budget ($)" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <select id="quickEventType" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <option value="casual_dating">Casual Dating</option>
+                        <option value="first_date">First Date</option>
+                        <option value="married_date">Married Date</option>
+                        <option value="friends_night">Night with Friends</option>
+                        <option value="family_outing">Family Outing</option>
+                    </select>
+                </div>
+                
+                <!-- Quick vibe selection -->
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" class="quick-vibe px-3 py-1 border border-gray-300 rounded-full hover:bg-indigo-50" data-vibe="romantic">💕 Romantic</button>
+                    <button type="button" class="quick-vibe px-3 py-1 border border-gray-300 rounded-full hover:bg-indigo-50" data-vibe="adventurous">🎯 Adventurous</button>
+                    <button type="button" class="quick-vibe px-3 py-1 border border-gray-300 rounded-full hover:bg-indigo-50" data-vibe="relaxed">😌 Relaxed</button>
+                    <button type="button" class="quick-vibe px-3 py-1 border border-gray-300 rounded-full hover:bg-indigo-50" data-vibe="fun">🎉 Fun</button>
+                    <button type="button" class="quick-vibe px-3 py-1 border border-gray-300 rounded-full hover:bg-indigo-50" data-vibe="cultural">🎨 Cultural</button>
+                </div>
+                
+                <button type="submit" class="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg transform transition hover:scale-105">
                     Generate Date Ideas ✨
                 </button>
             </form>
@@ -389,7 +413,7 @@
             });
         });
 
-        // Geolocation
+        // Geolocation for wizard
         function getLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((position) => {
@@ -407,28 +431,210 @@
             }
         }
 
-        // Generate date (mock for now)
+        // Geolocation for classic form
+        function getQuickLocation() {
+            const btn = document.getElementById('quickLocationBtn');
+            btn.innerHTML = '⏳ Getting location...';
+            btn.disabled = true;
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        // Reverse geocode to get address
+                        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+                            .then(r => r.json())
+                            .then(data => {
+                                const location = data.display_name || `${lat}, ${lon}`;
+                                document.getElementById('quickLocation').value = location;
+                                btn.innerHTML = '📍 Use My Location';
+                                btn.disabled = false;
+                            })
+                            .catch(() => {
+                                btn.innerHTML = '📍 Use My Location';
+                                btn.disabled = false;
+                                alert('Could not get address from coordinates');
+                            });
+                    },
+                    (error) => {
+                        btn.innerHTML = '📍 Use My Location';
+                        btn.disabled = false;
+                        alert('Location access denied. Please enter manually.');
+                    }
+                );
+            } else {
+                btn.innerHTML = '📍 Use My Location';
+                btn.disabled = false;
+                alert('Geolocation is not supported by your browser');
+            }
+        }
+
+        // Generate date with dynamic content based on input
         function generateDate() {
-            // Collect data
+            // Collect data from wizard
             if (document.getElementById('locationInput')) {
                 dateData.location = document.getElementById('locationInput').value;
             }
             if (document.getElementById('preferences')) {
                 dateData.preferences = document.getElementById('preferences').value;
             }
+            
+            // Collect data from classic form
+            if (formMode === 'classic') {
+                dateData.location = document.getElementById('quickLocation').value || 'Virginia Beach';
+                dateData.budget = parseInt(document.getElementById('quickBudget').value) || 100;
+            }
 
-            // Show results
-            document.getElementById('results').classList.remove('hidden');
-            document.getElementById('budgetDisplay').classList.remove('hidden');
+            // Show loading state
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="text-center py-12">
+                    <div class="inline-flex items-center justify-center">
+                        <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                    </div>
+                    <p class="mt-4 text-gray-600">Generating your perfect date ideas...</p>
+                </div>
+            `;
+            resultsDiv.classList.remove('hidden');
             
-            // Initialize map
-            initMap();
+            // Simulate API call delay
+            setTimeout(() => {
+                // Restore results structure
+                resultsDiv.innerHTML = `
+                    <!-- Interactive Map -->
+                    <div class="bg-white rounded-2xl shadow-xl p-6">
+                        <h3 class="text-xl font-bold mb-4">Interactive Map</h3>
+                        <div id="map" class="h-96 rounded-lg"></div>
+                    </div>
+
+                    <!-- Draggable Timeline -->
+                    <div class="bg-white rounded-2xl shadow-xl p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold">Your Date Timeline</h3>
+                            <div class="flex space-x-2">
+                                <button onclick="saveDate()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                    💾 Save
+                                </button>
+                                <button onclick="shareDate()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                    📤 Share
+                                </button>
+                                <button onclick="exportCalendar()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                                    📅 Export
+                                </button>
+                            </div>
+                        </div>
+                        <div id="timeline" class="space-y-4">
+                            <!-- Timeline items will be added here -->
+                        </div>
+                        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                            <div class="flex justify-between text-sm">
+                                <span>Total Duration: <strong id="totalDuration">0 hours</strong></span>
+                                <span>Total Cost: <strong id="totalCost">$0</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Venue Alternatives -->
+                    <div class="bg-white rounded-2xl shadow-xl p-6">
+                        <h3 class="text-xl font-bold mb-4">Alternative Venues</h3>
+                        <div id="alternatives" class="grid grid-cols-3 gap-4">
+                            <!-- Alternative venues will be added here -->
+                        </div>
+                    </div>
+                `;
+                
+                // Show results
+                document.getElementById('budgetDisplay').classList.remove('hidden');
+                
+                // Initialize map
+                initMap();
+                
+                // Create dynamic timeline based on input
+                createDynamicTimeline();
+                
+                // Scroll to results
+                document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+            }, 1500);
+        }
+
+        // Create dynamic timeline based on user input
+        function createDynamicTimeline() {
+            const eventType = dateData.eventType || 'casual_dating';
+            const budget = dateData.budget || 100;
+            const hours = dateData.timeAvailable || 4;
+            const vibes = dateData.vibes || [];
             
-            // Create mock timeline
-            createMockTimeline();
+            // Different activity sets based on event type and vibes
+            const activitySets = {
+                'first_date': [
+                    { time: '6:00 PM', activity: 'Coffee at Cozy Cafe', cost: 15, location: [36.8529, -75.9780] },
+                    { time: '7:00 PM', activity: 'Mini Golf & Ice Cream', cost: 25, location: [36.8509, -75.9760] },
+                    { time: '8:30 PM', activity: 'Sunset Beach Walk', cost: 0, location: [36.8489, -75.9740] }
+                ],
+                'casual_dating': [
+                    { time: '2:00 PM', activity: 'Lunch at Local Bistro', cost: 40, location: [36.8529, -75.9780] },
+                    { time: '3:30 PM', activity: 'Arcade & Games', cost: 20, location: [36.8509, -75.9760] },
+                    { time: '5:00 PM', activity: 'Happy Hour Drinks', cost: 30, location: [36.8489, -75.9740] },
+                    { time: '6:30 PM', activity: 'Live Music Venue', cost: 25, location: [36.8469, -75.9720] }
+                ],
+                'married_date': [
+                    { time: '5:00 PM', activity: 'Couples Spa Treatment', cost: 150, location: [36.8529, -75.9780] },
+                    { time: '7:00 PM', activity: 'Fine Dining Experience', cost: 120, location: [36.8509, -75.9760] },
+                    { time: '9:00 PM', activity: 'Rooftop Bar & Dancing', cost: 40, location: [36.8489, -75.9740] }
+                ],
+                'friends_night': [
+                    { time: '6:00 PM', activity: 'Bowling & Appetizers', cost: 35, location: [36.8529, -75.9780] },
+                    { time: '8:00 PM', activity: 'Trivia Night at Pub', cost: 25, location: [36.8509, -75.9760] },
+                    { time: '10:00 PM', activity: 'Karaoke Bar', cost: 20, location: [36.8489, -75.9740] }
+                ],
+                'family_outing': [
+                    { time: '11:00 AM', activity: 'Science Museum', cost: 60, location: [36.8529, -75.9780] },
+                    { time: '1:00 PM', activity: 'Family Restaurant', cost: 80, location: [36.8509, -75.9760] },
+                    { time: '3:00 PM', activity: 'Park & Playground', cost: 0, location: [36.8489, -75.9740] },
+                    { time: '5:00 PM', activity: 'Ice Cream Shop', cost: 20, location: [36.8469, -75.9720] }
+                ]
+            };
+
+            // Adjust activities based on vibes
+            let activities = activitySets[eventType] || activitySets['casual_dating'];
             
-            // Scroll to results
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+            // Modify based on selected vibes
+            if (vibes.includes('romantic')) {
+                activities[0].activity = '🌹 ' + activities[0].activity;
+            }
+            if (vibes.includes('adventurous')) {
+                activities.push({ 
+                    time: '9:00 PM', 
+                    activity: '🎯 Escape Room Challenge', 
+                    cost: 35, 
+                    location: [36.8449, -75.9700] 
+                });
+            }
+            if (vibes.includes('cultural')) {
+                activities[1] = { 
+                    time: activities[1].time, 
+                    activity: '🎨 Art Gallery Tour', 
+                    cost: 15, 
+                    location: activities[1].location 
+                };
+            }
+            
+            // Adjust to budget
+            if (budget < 50) {
+                activities = activities.map(a => ({
+                    ...a,
+                    activity: a.activity.includes('Fine Dining') ? 'Casual Dining' : a.activity,
+                    cost: Math.min(a.cost, 15)
+                }));
+            }
+            
+            // Adjust to time available
+            activities = activities.slice(0, Math.min(activities.length, Math.ceil(hours / 1.5)));
+            
+            timeline = activities;
+            renderTimeline();
+            addMarkersToMap();
         }
 
         // Initialize interactive map
@@ -441,19 +647,6 @@
             }
         }
 
-        // Create mock timeline with draggable items
-        function createMockTimeline() {
-            const mockActivities = [
-                { time: '2:00 PM', activity: 'Coffee at Coastal Cafe', cost: 15, location: [36.8529, -75.9780] },
-                { time: '3:30 PM', activity: 'Beach Walk & Photos', cost: 0, location: [36.8509, -75.9760] },
-                { time: '5:00 PM', activity: 'Sunset Dinner at Pier', cost: 80, location: [36.8489, -75.9740] },
-                { time: '7:00 PM', activity: 'Live Music at Boardwalk', cost: 25, location: [36.8469, -75.9720] }
-            ];
-
-            timeline = mockActivities;
-            renderTimeline();
-            addMarkersToMap();
-        }
 
         function renderTimeline() {
             const timelineEl = document.getElementById('timeline');
@@ -613,11 +806,33 @@
             a.click();
         }
 
+        // Quick vibe selection for classic form
+        document.querySelectorAll('.quick-vibe').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('bg-indigo-600');
+                btn.classList.toggle('text-white');
+                btn.classList.toggle('border-gray-300');
+                const vibe = btn.dataset.vibe;
+                if (!dateData.vibes) dateData.vibes = [];
+                if (dateData.vibes.includes(vibe)) {
+                    dateData.vibes = dateData.vibes.filter(v => v !== vibe);
+                } else {
+                    dateData.vibes.push(vibe);
+                }
+            });
+        });
+
         // Classic form submission
         document.getElementById('dateForm')?.addEventListener('submit', (e) => {
             e.preventDefault();
-            dateData.location = document.getElementById('quickLocation').value;
-            dateData.budget = document.getElementById('quickBudget').value;
+            
+            // Collect all form data
+            dateData.location = document.getElementById('quickLocation').value || 'Virginia Beach';
+            dateData.budget = parseInt(document.getElementById('quickBudget').value) || 100;
+            dateData.eventType = document.getElementById('quickEventType').value;
+            
+            // Vibes are already collected via click handlers
+            
             generateDate();
         });
     </script>
