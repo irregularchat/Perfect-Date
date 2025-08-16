@@ -520,6 +520,12 @@
             if (confirmation) {
                 console.log('Generating date for destination:', cityName, 'with data:', dateData);
                 
+                // Double-check that location is properly set
+                if (!dateData.location || dateData.location !== cityName) {
+                    console.warn('Location mismatch, fixing:', dateData.location, 'should be', cityName);
+                    dateData.location = cityName;
+                }
+                
                 // Clear the results section first to show we're generating new content
                 const resultsDiv = document.getElementById('results');
                 resultsDiv.innerHTML = `
@@ -528,12 +534,17 @@
                             <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
                         </div>
                         <p class="mt-4 text-gray-600">Generating romantic getaway ideas for ${cityName}...</p>
+                        <p class="mt-2 text-sm text-gray-500">Finding the best venues, restaurants, and activities...</p>
                     </div>
                 `;
                 resultsDiv.classList.remove('hidden');
                 resultsDiv.scrollIntoView({ behavior: 'smooth' });
                 
-                generateDate();
+                // Force a small delay to ensure dateData is properly set
+                setTimeout(() => {
+                    console.log('Final dateData before API call:', dateData);
+                    generateDate();
+                }, 100);
             }
         }
         
@@ -1207,6 +1218,9 @@
                         
                         // Add explanation for two-location optimization
                         if (result.two_location_mode) {
+                            addTwoLocationExplanation(result);
+                        } else if (dateData.date_location && dateData.date_location !== dateData.location) {
+                            // This was a two-location request that succeeded (reasonable distance)
                             addTwoLocationExplanation(result);
                         }
                         
