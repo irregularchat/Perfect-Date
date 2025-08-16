@@ -5,6 +5,9 @@ With Google Maps integration and dynamic location handling
 
 import os
 import json
+import sqlite3
+import hashlib
+import secrets
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, FileResponse
@@ -12,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import googlemaps
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Try to load .env file if it exists
 try:
@@ -44,6 +47,81 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 # Mount static files
 app.mount("/assets", StaticFiles(directory=STATIC_DIR), name="static")
 
+# Database setup
+DB_PATH = os.path.join(os.path.dirname(__file__), "shared_dates.db")
+
+def init_database():
+    """Initialize the database with required tables"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS shared_date_plans (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            activities TEXT NOT NULL,
+            location TEXT NOT NULL,
+            date_location TEXT,
+            budget INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            vibes TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP,
+            view_count INTEGER DEFAULT 0
+        )
+    """)
+    
+    conn.commit()
+    conn.close()
+
+def generate_share_id() -> str:
+    """Generate a unique short ID for sharing"""
+    return secrets.token_urlsafe(8)[:8].lower()
+
+def get_shared_date_plan(share_id: str) -> Optional[Dict]:
+    """Retrieve a shared date plan by ID"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Check if plan exists and hasn't expired
+    cursor.execute("""
+        SELECT id, title, activities, location, date_location, budget, 
+               event_type, vibes, created_at, expires_at, view_count
+        FROM shared_date_plans 
+        WHERE id = ? AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+    """, (share_id,))
+    
+    result = cursor.fetchone()
+    conn.close()
+    
+    if not result:
+        return None
+    
+    return {
+        "id": result[0],
+        "title": result[1],
+        "activities": json.loads(result[2]),
+        "location": result[3],
+        "date_location": result[4],
+        "budget": result[5],
+        "event_type": result[6],
+        "vibes": json.loads(result[7]),
+        "created_at": result[8],
+        "expires_at": result[9],
+        "view_count": result[10]
+    }
+
+def increment_view_count(share_id: str):
+    """Increment view count for a shared date plan"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE shared_date_plans SET view_count = view_count + 1 WHERE id = ?", (share_id,))
+    conn.commit()
+    conn.close()
+
+# Initialize database on startup
+init_database()
+
 class LocationRequest(BaseModel):
     latitude: float
     longitude: float
@@ -62,6 +140,29 @@ class PlaceDetails(BaseModel):
     price_level: Optional[int]
     location: Dict[str, float]
     place_id: str
+
+class ShareDateRequest(BaseModel):
+    activities: List[Dict]
+    location: str
+    date_location: Optional[str] = None
+    budget: int
+    event_type: str
+    vibes: List[str]
+    title: Optional[str] = None
+    expiry_hours: Optional[int] = 168  # 7 days default
+
+class SharedDatePlan(BaseModel):
+    id: str
+    title: str
+    activities: List[Dict]
+    location: str
+    date_location: Optional[str]
+    budget: int
+    event_type: str
+    vibes: List[str]
+    created_at: datetime
+    expires_at: Optional[datetime]
+    view_count: int = 0
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
@@ -442,6 +543,271 @@ async def search_places(query: str, location: str, radius: int = 5000):
         return {"places": places}
     except Exception as e:
         return {"places": [], "error": str(e)}
+
+@app.post("/api/share-date")
+async def create_shared_date(request: ShareDateRequest):
+    """Create a shareable link for a date plan"""
+    try:
+        # Generate unique ID
+        share_id = generate_share_id()
+        
+        # Ensure ID is unique
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        while True:
+            cursor.execute("SELECT id FROM shared_date_plans WHERE id = ?", (share_id,))
+            if not cursor.fetchone():
+                break
+            share_id = generate_share_id()
+        
+        # Calculate expiry time
+        expires_at = None
+        if request.expiry_hours and request.expiry_hours > 0:
+            expires_at = datetime.now() + timedelta(hours=request.expiry_hours)
+        
+        # Generate title if not provided
+        title = request.title
+        if not title:
+            location_name = request.location
+            if request.date_location and request.date_location != request.location:
+                location_name = f"{request.location} & {request.date_location}"
+            title = f"{request.event_type.replace('_', ' ').title()} in {location_name}"
+        
+        # Store in database
+        cursor.execute("""
+            INSERT INTO shared_date_plans 
+            (id, title, activities, location, date_location, budget, event_type, vibes, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            share_id,
+            title,
+            json.dumps(request.activities),
+            request.location,
+            request.date_location,
+            request.budget,
+            request.event_type,
+            json.dumps(request.vibes),
+            expires_at.isoformat() if expires_at else None
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "success": True,
+            "share_id": share_id,
+            "share_url": f"/shared/{share_id}",
+            "expires_at": expires_at.isoformat() if expires_at else None,
+            "title": title
+        }
+        
+    except Exception as e:
+        print(f"Error creating shared date: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create shareable link")
+
+@app.get("/api/shared/{share_id}")
+async def get_shared_date(share_id: str):
+    """Get a shared date plan by ID"""
+    try:
+        plan = get_shared_date_plan(share_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Date plan not found or expired")
+        
+        # Increment view count
+        increment_view_count(share_id)
+        
+        return {
+            "success": True,
+            "plan": plan
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error retrieving shared date: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve date plan")
+
+@app.get("/shared/{share_id}", response_class=HTMLResponse)
+async def view_shared_date(share_id: str):
+    """View a shared date plan in the browser"""
+    try:
+        plan = get_shared_date_plan(share_id)
+        if not plan:
+            return HTMLResponse(
+                content="<h1>Date Plan Not Found</h1><p>This date plan may have expired or doesn't exist.</p>",
+                status_code=404
+            )
+        
+        # Increment view count
+        increment_view_count(share_id)
+        
+        # Return the main app with the shared plan data and Open Graph meta tags
+        enhanced_path = os.path.join(STATIC_DIR, "enhanced-ui.html")
+        if os.path.exists(enhanced_path):
+            with open(enhanced_path, 'r') as f:
+                html_content = f.read()
+            
+            # Generate Open Graph meta tags
+            og_meta_tags = generate_open_graph_tags(plan, share_id)
+            
+            # Inject Open Graph meta tags
+            html_content = html_content.replace(
+                '<title>Perfect Date Generator - Enhanced UI</title>',
+                f'<title>{plan["title"]} - Perfect Date Generator</title>\n{og_meta_tags}'
+            )
+            
+            # Inject the shared plan data into the HTML
+            plan_json = json.dumps(plan).replace('"', '&quot;')
+            html_content = html_content.replace(
+                '<body>',
+                f'<body data-shared-plan="{plan_json}">'
+            )
+            
+            return HTMLResponse(content=html_content)
+        
+        return HTMLResponse("<h1>Date Plan Viewer</h1><p>Shared date plan interface not available</p>")
+        
+    except Exception as e:
+        print(f"Error viewing shared date: {e}")
+        return HTMLResponse(
+            content="<h1>Error</h1><p>Failed to load date plan</p>",
+            status_code=500
+        )
+
+def generate_open_graph_tags(plan: Dict, share_id: str) -> str:
+    """Generate Open Graph meta tags for rich link previews"""
+    
+    # Extract key information
+    title = plan["title"]
+    location_text = plan["location"]
+    if plan.get("date_location") and plan["date_location"] != plan["location"]:
+        location_text = f"{plan['location']} & {plan['date_location']}"
+    
+    activity_count = len(plan["activities"])
+    budget = plan["budget"]
+    event_type = plan["event_type"].replace("_", " ").title()
+    
+    # Generate description
+    description = f"{event_type} with {activity_count} activities in {location_text}. Budget: ${budget}."
+    if plan["vibes"]:
+        description += f" Vibes: {', '.join(plan['vibes'])}."
+    
+    # Current domain (should be configurable in production)
+    domain = "localhost:1090"  # This should be read from environment or config
+    share_url = f"http://{domain}/shared/{share_id}"
+    
+    # Generate activity summary for rich preview
+    activity_summary = ""
+    if plan["activities"]:
+        top_activities = plan["activities"][:3]  # Show first 3 activities
+        activity_list = [f"• {activity.get('activity', activity.get('place_name', 'Activity'))}" for activity in top_activities]
+        activity_summary = "\n".join(activity_list)
+        if len(plan["activities"]) > 3:
+            activity_summary += f"\n...and {len(plan['activities']) - 3} more"
+    
+    # Meta tags for rich previews
+    meta_tags = f"""
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{share_url}">
+    <meta property="og:title" content="{title}">
+    <meta property="og:description" content="{description}">
+    <meta property="og:image" content="http://{domain}/api/og-image/{share_id}">
+    <meta property="og:site_name" content="Perfect Date Generator">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{share_url}">
+    <meta property="twitter:title" content="{title}">
+    <meta property="twitter:description" content="{description}">
+    <meta property="twitter:image" content="http://{domain}/api/og-image/{share_id}">
+    
+    <!-- Additional Meta -->
+    <meta name="description" content="{description}">
+    <meta property="article:author" content="Perfect Date Generator">
+    <meta property="article:section" content="Date Planning">
+    """
+    
+    return meta_tags
+
+@app.get("/api/og-image/{share_id}")
+async def generate_og_image(share_id: str):
+    """Generate Open Graph image for shared date plan"""
+    try:
+        plan = get_shared_date_plan(share_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Date plan not found")
+        
+        # For now, return a simple SVG image with plan details
+        # In production, you might want to use PIL or another image library
+        svg_content = generate_og_svg(plan)
+        
+        return HTMLResponse(
+            content=svg_content,
+            headers={"Content-Type": "image/svg+xml"}
+        )
+        
+    except Exception as e:
+        print(f"Error generating OG image: {e}")
+        # Return a default image
+        default_svg = """
+        <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="#6366f1"/>
+            <text x="600" y="315" text-anchor="middle" fill="white" font-size="48" font-family="Arial">
+                Perfect Date Generator
+            </text>
+        </svg>
+        """
+        return HTMLResponse(
+            content=default_svg,
+            headers={"Content-Type": "image/svg+xml"}
+        )
+
+def generate_og_svg(plan: Dict) -> str:
+    """Generate SVG image for Open Graph preview"""
+    title = plan["title"]
+    location = plan["location"]
+    if plan.get("date_location") and plan["date_location"] != plan["location"]:
+        location = f"{plan['location']} & {plan['date_location']}"
+    
+    activity_count = len(plan["activities"])
+    budget = plan["budget"]
+    
+    # Get first few activities for display
+    activities_text = ""
+    if plan["activities"]:
+        top_3 = plan["activities"][:3]
+        for i, activity in enumerate(top_3):
+            activity_name = activity.get("activity", activity.get("place_name", "Activity"))
+            activities_text += f"<text x='60' y='{400 + i * 40}' fill='white' font-size='24' font-family='Arial'>{i+1}. {activity_name}</text>"
+    
+    svg = f"""
+    <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background gradient -->
+        <defs>
+            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grad1)"/>
+        
+        <!-- Content -->
+        <text x="60" y="120" fill="white" font-size="48" font-weight="bold" font-family="Arial">{title}</text>
+        <text x="60" y="180" fill="white" font-size="32" font-family="Arial">📍 {location}</text>
+        <text x="60" y="230" fill="white" font-size="28" font-family="Arial">💰 ${budget} Budget • {activity_count} Activities</text>
+        
+        <!-- Activities -->
+        <text x="60" y="320" fill="white" font-size="32" font-weight="bold" font-family="Arial">Itinerary:</text>
+        {activities_text}
+        
+        <!-- Branding -->
+        <text x="1140" y="600" text-anchor="end" fill="white" font-size="20" font-family="Arial">Perfect Date Generator</text>
+    </svg>
+    """
+    
+    return svg
 
 if __name__ == "__main__":
     # Check for API key
