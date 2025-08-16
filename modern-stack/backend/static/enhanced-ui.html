@@ -466,9 +466,73 @@
             dateData.location = cityName;
             dateData.date_location = null; // Clear two-location mode
             
+            // Clear any form inputs that might interfere
+            const dateLocationInput = document.getElementById('quickDateLocation');
+            if (dateLocationInput) {
+                dateLocationInput.value = '';
+                dateLocationInput.style.display = 'none';
+            }
+            
+            const sameLocationCheck = document.getElementById('quickSameLocationCheck');
+            if (sameLocationCheck) {
+                sameLocationCheck.checked = true;
+            }
+            
+            // Ensure we have all the necessary form data
+            if (!dateData.budget) {
+                dateData.budget = parseInt(document.getElementById('quickBudget')?.value) || 100;
+            }
+            if (!dateData.eventType) {
+                dateData.eventType = document.getElementById('quickEventType')?.value || 'casual_dating';
+            }
+            if (!dateData.vibes || dateData.vibes.length === 0) {
+                // Get selected vibes from both wizard and classic forms
+                const selectedVibes = [];
+                
+                // Check wizard form vibes (look for buttons with indigo background)
+                document.querySelectorAll('.vibe-btn.bg-indigo-600').forEach(btn => {
+                    if (btn.dataset.vibe) selectedVibes.push(btn.dataset.vibe);
+                });
+                
+                // Check classic form vibes (look for buttons with indigo background)
+                document.querySelectorAll('.quick-vibe.bg-indigo-600').forEach(btn => {
+                    if (btn.dataset.vibe) selectedVibes.push(btn.dataset.vibe);
+                });
+                
+                // Use current dateData.vibes if they exist from previous selections
+                if (dateData.vibes && dateData.vibes.length > 0) {
+                    selectedVibes.push(...dateData.vibes);
+                }
+                
+                // Remove duplicates and set
+                dateData.vibes = [...new Set(selectedVibes)];
+                
+                if (dateData.vibes.length === 0) {
+                    dateData.vibes = ['romantic']; // Default for destination dating
+                }
+            }
+            if (!dateData.timeAvailable) {
+                dateData.timeAvailable = 4; // Default 4 hours for getaway
+            }
+            
             // Show confirmation and generate date
             const confirmation = confirm(`Generate date ideas for ${cityName}? This will create a romantic getaway itinerary for both of you to enjoy together.`);
             if (confirmation) {
+                console.log('Generating date for destination:', cityName, 'with data:', dateData);
+                
+                // Clear the results section first to show we're generating new content
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="inline-flex items-center justify-center">
+                            <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                        </div>
+                        <p class="mt-4 text-gray-600">Generating romantic getaway ideas for ${cityName}...</p>
+                    </div>
+                `;
+                resultsDiv.classList.remove('hidden');
+                resultsDiv.scrollIntoView({ behavior: 'smooth' });
+                
                 generateDate();
             }
         }
@@ -1004,20 +1068,25 @@
             }
             
             try {
+                // Prepare API request data
+                const requestData = {
+                    location: dateData.location || `${baseLat}, ${baseLng}`,
+                    date_location: dateData.date_location || null,
+                    budget: budget,
+                    event_type: eventType,
+                    vibes: vibes,
+                    time_available: hours
+                };
+                
+                console.log('API Request Data:', requestData);
+                
                 // Call backend API to generate real places
                 const response = await fetch('/api/generate-date', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        location: dateData.location || `${baseLat}, ${baseLng}`,
-                        date_location: dateData.date_location || null,
-                        budget: budget,
-                        event_type: eventType,
-                        vibes: vibes,
-                        time_available: hours
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
                 if (response.ok) {
