@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfect Date Generator - Enhanced UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        .step-indicator {
+            transition: all 0.3s ease;
+        }
+        .step-indicator.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        }
+        .timeline-item {
+            transition: all 0.3s ease;
+        }
+        .timeline-item.dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+        .editable:hover {
+            background-color: rgba(99, 102, 241, 0.05);
+            cursor: text;
+        }
+        .venue-card {
+            transition: all 0.3s ease;
+        }
+        .venue-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Perfect Date Generator</h1>
+                        <p class="text-sm text-gray-600">AI-powered personalized experiences</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleFormMode()" class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition">
+                        <span id="formModeText">Switch to Wizard</span>
+                    </button>
+                    <div id="budgetDisplay" class="hidden px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold">
+                        Budget: $<span id="currentBudget">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Form Wizard -->
+        <div id="formWizard" class="hidden bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+            <!-- Progress Bar -->
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="stepTitle" class="text-2xl font-bold text-white">What's the Occasion?</h2>
+                    <span class="text-white/90">Step <span id="currentStep">1</span> of 5</span>
+                </div>
+                <div class="flex space-x-2">
+                    <div class="step-indicator flex-1 h-2 bg-white rounded-full transition-all" data-step="1"></div>
+                    <div class="step-indicator flex-1 h-2 bg-white/30 rounded-full transition-all" data-step="2"></div>
+                    <div class="step-indicator flex-1 h-2 bg-white/30 rounded-full transition-all" data-step="3"></div>
+                    <div class="step-indicator flex-1 h-2 bg-white/30 rounded-full transition-all" data-step="4"></div>
+                    <div class="step-indicator flex-1 h-2 bg-white/30 rounded-full transition-all" data-step="5"></div>
+                </div>
+            </div>
+
+            <!-- Step Content -->
+            <div class="p-8">
+                <!-- Step 1: Event Type -->
+                <div id="step1" class="step-content">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Event Type</label>
+                            <select id="eventType" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                <option value="first_date">First Date</option>
+                                <option value="casual_dating">Casual Dating</option>
+                                <option value="married_date">Married Date</option>
+                                <option value="friends_night">Night with Friends</option>
+                                <option value="family_outing">Family Outing</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">When?</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button class="time-option px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-time="today">Today</button>
+                                <button class="time-option px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-time="tomorrow">Tomorrow</button>
+                                <button class="time-option px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-time="weekend">This Weekend</button>
+                                <button class="time-option px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-time="next_week">Next Week</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Time & Budget -->
+                <div id="step2" class="step-content hidden">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Time Available: <span id="timeDisplay" class="text-indigo-600 font-bold">4 hours</span>
+                            </label>
+                            <input type="range" id="timeSlider" min="1" max="12" value="4" class="w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Budget: <span id="budgetSliderDisplay" class="text-green-600 font-bold">$100</span>
+                            </label>
+                            <input type="range" id="budgetSlider" min="0" max="500" step="10" value="100" class="w-full">
+                            <div class="mt-3 flex gap-2">
+                                <button onclick="setBudget(0)" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">Free</button>
+                                <button onclick="setBudget(50)" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">$50</button>
+                                <button onclick="setBudget(100)" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">$100</button>
+                                <button onclick="setBudget(200)" class="px-3 py-1 bg-gray-100 rounded-full hover:bg-gray-200">$200</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Vibes -->
+                <div id="step3" class="step-content hidden">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Select Your Vibes</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <button class="vibe-btn px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-vibe="romantic">💕 Romantic</button>
+                                <button class="vibe-btn px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-vibe="adventurous">🎯 Adventurous</button>
+                                <button class="vibe-btn px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-vibe="relaxed">😌 Relaxed</button>
+                                <button class="vibe-btn px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-vibe="fun">🎉 Fun</button>
+                                <button class="vibe-btn px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-vibe="cultural">🎨 Cultural</button>
+                                <button class="vibe-btn px-4 py-2 border border-gray-300 rounded-lg hover:bg-indigo-50" data-vibe="sophisticated">🍷 Sophisticated</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Activity Level: <span id="activityDisplay" class="text-indigo-600 font-bold">5</span>
+                            </label>
+                            <input type="range" id="activitySlider" min="1" max="10" value="5" class="w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Location -->
+                <div id="step4" class="step-content hidden">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Your Location</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="locationInput" placeholder="Enter city or address" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                <button onclick="getLocation()" class="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                                    📍 Use My Location
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Preferences</label>
+                            <textarea id="preferences" placeholder="What do you like? Any special requests?" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Review -->
+                <div id="step5" class="step-content hidden">
+                    <div class="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg">
+                        <h3 class="font-bold text-lg mb-4">Your Perfect Date Summary</h3>
+                        <div id="summaryContent" class="space-y-2 text-sm">
+                            <!-- Summary will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="flex justify-between mt-8">
+                    <button onclick="previousStep()" id="prevBtn" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50" disabled>
+                        ← Previous
+                    </button>
+                    <button onclick="nextStep()" id="nextBtn" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg">
+                        Next →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classic Form (default visible) -->
+        <div id="classicForm" class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <h2 class="text-2xl font-bold mb-6">Plan Your Perfect Date</h2>
+            <form id="dateForm" class="space-y-4">
+                <!-- Quick form fields -->
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="quickLocation" placeholder="Location" class="px-4 py-2 border rounded-lg">
+                    <input type="number" id="quickBudget" placeholder="Budget ($)" class="px-4 py-2 border rounded-lg">
+                </div>
+                <button type="submit" class="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg">
+                    Generate Date Ideas ✨
+                </button>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden space-y-8">
+            <!-- Interactive Map -->
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+                <h3 class="text-xl font-bold mb-4">Interactive Map</h3>
+                <div id="map" class="h-96 rounded-lg"></div>
+            </div>
+
+            <!-- Draggable Timeline -->
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Your Date Timeline</h3>
+                    <div class="flex space-x-2">
+                        <button onclick="saveDate()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            💾 Save
+                        </button>
+                        <button onclick="shareDate()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            📤 Share
+                        </button>
+                        <button onclick="exportCalendar()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                            📅 Export
+                        </button>
+                    </div>
+                </div>
+                <div id="timeline" class="space-y-4">
+                    <!-- Timeline items will be added here -->
+                </div>
+                <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="flex justify-between text-sm">
+                        <span>Total Duration: <strong id="totalDuration">0 hours</strong></span>
+                        <span>Total Cost: <strong id="totalCost">$0</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Venue Alternatives -->
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+                <h3 class="text-xl font-bold mb-4">Alternative Venues</h3>
+                <div id="alternatives" class="grid grid-cols-3 gap-4">
+                    <!-- Alternative venues will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStepNum = 1;
+        let formMode = 'classic';
+        let dateData = {
+            eventType: 'casual_dating',
+            timeAvailable: 4,
+            budget: 100,
+            vibes: [],
+            activityLevel: 5,
+            location: '',
+            preferences: ''
+        };
+        let map = null;
+        let timeline = [];
+        let markers = [];
+
+        // Form mode toggle
+        function toggleFormMode() {
+            formMode = formMode === 'classic' ? 'wizard' : 'classic';
+            document.getElementById('formWizard').classList.toggle('hidden');
+            document.getElementById('classicForm').classList.toggle('hidden');
+            document.getElementById('formModeText').textContent = formMode === 'classic' ? 'Switch to Wizard' : 'Switch to Classic';
+        }
+
+        // Wizard navigation
+        function nextStep() {
+            if (currentStepNum < 5) {
+                document.getElementById(`step${currentStepNum}`).classList.add('hidden');
+                currentStepNum++;
+                document.getElementById(`step${currentStepNum}`).classList.remove('hidden');
+                updateStepUI();
+            } else {
+                generateDate();
+            }
+        }
+
+        function previousStep() {
+            if (currentStepNum > 1) {
+                document.getElementById(`step${currentStepNum}`).classList.add('hidden');
+                currentStepNum--;
+                document.getElementById(`step${currentStepNum}`).classList.remove('hidden');
+                updateStepUI();
+            }
+        }
+
+        function updateStepUI() {
+            // Update progress bars
+            document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+                if (index < currentStepNum) {
+                    indicator.classList.remove('bg-white/30');
+                    indicator.classList.add('bg-white');
+                } else {
+                    indicator.classList.remove('bg-white');
+                    indicator.classList.add('bg-white/30');
+                }
+            });
+
+            // Update step counter
+            document.getElementById('currentStep').textContent = currentStepNum;
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = currentStepNum === 1;
+            document.getElementById('nextBtn').textContent = currentStepNum === 5 ? 'Generate Date ✨' : 'Next →';
+
+            // Update title
+            const titles = ['What\'s the Occasion?', 'Time & Budget', 'Set the Mood', 'Location & Preferences', 'Review & Generate'];
+            document.getElementById('stepTitle').textContent = titles[currentStepNum - 1];
+
+            // Update summary on step 5
+            if (currentStepNum === 5) {
+                updateSummary();
+            }
+        }
+
+        function updateSummary() {
+            const summary = `
+                <div><strong>Event:</strong> ${dateData.eventType.replace('_', ' ')}</div>
+                <div><strong>Time:</strong> ${dateData.timeAvailable} hours</div>
+                <div><strong>Budget:</strong> $${dateData.budget}</div>
+                <div><strong>Vibes:</strong> ${dateData.vibes.join(', ') || 'Not selected'}</div>
+                <div><strong>Location:</strong> ${dateData.location || 'Not specified'}</div>
+            `;
+            document.getElementById('summaryContent').innerHTML = summary;
+        }
+
+        // Interactive elements
+        document.getElementById('timeSlider')?.addEventListener('input', (e) => {
+            dateData.timeAvailable = e.target.value;
+            document.getElementById('timeDisplay').textContent = `${e.target.value} hours`;
+        });
+
+        document.getElementById('budgetSlider')?.addEventListener('input', (e) => {
+            dateData.budget = e.target.value;
+            document.getElementById('budgetSliderDisplay').textContent = `$${e.target.value}`;
+            document.getElementById('currentBudget').textContent = e.target.value;
+        });
+
+        document.getElementById('activitySlider')?.addEventListener('input', (e) => {
+            dateData.activityLevel = e.target.value;
+            document.getElementById('activityDisplay').textContent = e.target.value;
+        });
+
+        function setBudget(amount) {
+            dateData.budget = amount;
+            document.getElementById('budgetSlider').value = amount;
+            document.getElementById('budgetSliderDisplay').textContent = `$${amount}`;
+        }
+
+        // Vibe selection
+        document.querySelectorAll('.vibe-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('bg-indigo-600');
+                btn.classList.toggle('text-white');
+                const vibe = btn.dataset.vibe;
+                if (dateData.vibes.includes(vibe)) {
+                    dateData.vibes = dateData.vibes.filter(v => v !== vibe);
+                } else {
+                    dateData.vibes.push(vibe);
+                }
+            });
+        });
+
+        // Time option selection
+        document.querySelectorAll('.time-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.time-option').forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'text-white');
+                });
+                btn.classList.add('bg-indigo-600', 'text-white');
+                dateData.timePreference = btn.dataset.time;
+            });
+        });
+
+        // Geolocation
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    // Reverse geocode to get address
+                    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+                        .then(r => r.json())
+                        .then(data => {
+                            const location = data.display_name;
+                            document.getElementById('locationInput').value = location;
+                            dateData.location = location;
+                        });
+                });
+            }
+        }
+
+        // Generate date (mock for now)
+        function generateDate() {
+            // Collect data
+            if (document.getElementById('locationInput')) {
+                dateData.location = document.getElementById('locationInput').value;
+            }
+            if (document.getElementById('preferences')) {
+                dateData.preferences = document.getElementById('preferences').value;
+            }
+
+            // Show results
+            document.getElementById('results').classList.remove('hidden');
+            document.getElementById('budgetDisplay').classList.remove('hidden');
+            
+            // Initialize map
+            initMap();
+            
+            // Create mock timeline
+            createMockTimeline();
+            
+            // Scroll to results
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Initialize interactive map
+        function initMap() {
+            if (!map) {
+                map = L.map('map').setView([36.8529, -75.9780], 13); // Default to Virginia Beach
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+            }
+        }
+
+        // Create mock timeline with draggable items
+        function createMockTimeline() {
+            const mockActivities = [
+                { time: '2:00 PM', activity: 'Coffee at Coastal Cafe', cost: 15, location: [36.8529, -75.9780] },
+                { time: '3:30 PM', activity: 'Beach Walk & Photos', cost: 0, location: [36.8509, -75.9760] },
+                { time: '5:00 PM', activity: 'Sunset Dinner at Pier', cost: 80, location: [36.8489, -75.9740] },
+                { time: '7:00 PM', activity: 'Live Music at Boardwalk', cost: 25, location: [36.8469, -75.9720] }
+            ];
+
+            timeline = mockActivities;
+            renderTimeline();
+            addMarkersToMap();
+        }
+
+        function renderTimeline() {
+            const timelineEl = document.getElementById('timeline');
+            timelineEl.innerHTML = '';
+            
+            timeline.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'timeline-item bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg cursor-move';
+                div.dataset.index = index;
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-2xl">📍</span>
+                            <div>
+                                <div class="font-semibold editable" contenteditable="true" data-field="activity">${item.activity}</div>
+                                <div class="text-sm text-gray-600">
+                                    <span class="editable" contenteditable="true" data-field="time">${item.time}</span> • 
+                                    $<span class="editable" contenteditable="true" data-field="cost">${item.cost}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="swapVenue(${index})" class="px-3 py-1 bg-white text-indigo-600 rounded hover:bg-indigo-50">
+                                🔄 Swap
+                            </button>
+                            <button onclick="removeActivity(${index})" class="px-3 py-1 bg-white text-red-600 rounded hover:bg-red-50">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                `;
+                timelineEl.appendChild(div);
+            });
+
+            // Make timeline sortable
+            new Sortable(timelineEl, {
+                animation: 150,
+                ghostClass: 'dragging',
+                onEnd: function(evt) {
+                    // Reorder timeline array
+                    const item = timeline.splice(evt.oldIndex, 1)[0];
+                    timeline.splice(evt.newIndex, 0, item);
+                    updateTotals();
+                }
+            });
+
+            // Add inline editing
+            document.querySelectorAll('.editable').forEach(el => {
+                el.addEventListener('blur', function() {
+                    const index = this.closest('.timeline-item').dataset.index;
+                    const field = this.dataset.field;
+                    const value = field === 'cost' ? parseFloat(this.textContent) : this.textContent;
+                    timeline[index][field] = value;
+                    updateTotals();
+                });
+            });
+
+            updateTotals();
+        }
+
+        function updateTotals() {
+            const totalCost = timeline.reduce((sum, item) => sum + (item.cost || 0), 0);
+            const totalHours = timeline.length * 1.5; // Estimate 1.5 hours per activity
+            
+            document.getElementById('totalCost').textContent = `$${totalCost}`;
+            document.getElementById('totalDuration').textContent = `${totalHours} hours`;
+            document.getElementById('currentBudget').textContent = totalCost;
+        }
+
+        function addMarkersToMap() {
+            // Clear existing markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            // Add new markers
+            timeline.forEach((item, index) => {
+                const marker = L.marker(item.location)
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class="p-2">
+                            <strong>${item.activity}</strong><br>
+                            ${item.time} • $${item.cost}
+                        </div>
+                    `);
+                markers.push(marker);
+            });
+
+            // Draw route between markers
+            if (markers.length > 1) {
+                const latlngs = timeline.map(item => item.location);
+                L.polyline(latlngs, { color: 'indigo', weight: 3, opacity: 0.7 }).addTo(map);
+            }
+
+            // Fit map to markers
+            if (markers.length > 0) {
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        function swapVenue(index) {
+            // Show alternative venues
+            const alternatives = [
+                'Starbucks Reserve', 'Local Art Gallery', 'Botanical Gardens',
+                'Rooftop Bar', 'Comedy Club', 'Escape Room'
+            ];
+            
+            const altHtml = alternatives.map(alt => `
+                <div class="venue-card p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-indigo-50" onclick="replaceVenue(${index}, '${alt}')">
+                    <div class="font-medium">${alt}</div>
+                    <div class="text-sm text-gray-600">⭐ 4.5 • $$ • 0.5 mi</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('alternatives').innerHTML = altHtml;
+            document.getElementById('alternatives').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function replaceVenue(index, newVenue) {
+            timeline[index].activity = newVenue;
+            renderTimeline();
+            addMarkersToMap();
+        }
+
+        function removeActivity(index) {
+            timeline.splice(index, 1);
+            renderTimeline();
+            addMarkersToMap();
+        }
+
+        function saveDate() {
+            const dateStr = JSON.stringify({ timeline, dateData });
+            localStorage.setItem('savedDate', dateStr);
+            alert('Date saved successfully! 💾');
+        }
+
+        function shareDate() {
+            const shareUrl = `${window.location.origin}?date=${btoa(JSON.stringify(timeline))}`;
+            navigator.clipboard.writeText(shareUrl);
+            alert('Share link copied to clipboard! 📋');
+        }
+
+        function exportCalendar() {
+            // Create iCal format
+            let ical = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Perfect Date//EN\n';
+            timeline.forEach(item => {
+                ical += `BEGIN:VEVENT\nSUMMARY:${item.activity}\nDTSTART:${new Date().toISOString()}\nEND:VEVENT\n`;
+            });
+            ical += 'END:VCALENDAR';
+            
+            // Download file
+            const blob = new Blob([ical], { type: 'text/calendar' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'perfect-date.ics';
+            a.click();
+        }
+
+        // Classic form submission
+        document.getElementById('dateForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            dateData.location = document.getElementById('quickLocation').value;
+            dateData.budget = document.getElementById('quickBudget').value;
+            generateDate();
+        });
+    </script>
+</body>
+</html>
