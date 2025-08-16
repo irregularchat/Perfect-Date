@@ -139,6 +139,7 @@ class LocationRequest(BaseModel):
 
 class DateRequest(BaseModel):
     location: str
+    date_location: Optional[str] = None  # New field for date's location
     budget: int
     event_type: str
     vibes: List[str]
@@ -195,34 +196,94 @@ async def geocode_location(location: LocationRequest):
 async def generate_date(request: DateRequest):
     """Generate date ideas based on location and preferences"""
     
-    # Parse location to get coordinates
-    lat, lng = 36.8529, -75.9780  # Default to Virginia Beach
+    # Parse primary location to get coordinates
+    lat1, lng1 = 35.0526, -78.8783  # Default to Fayetteville, NC
     
     if gmaps and request.location:
         try:
             geocode_result = gmaps.geocode(request.location)
             if geocode_result:
                 location = geocode_result[0]["geometry"]["location"]
-                lat, lng = location["lat"], location["lng"]
+                lat1, lng1 = location["lat"], location["lng"]
         except Exception as e:
-            print(f"Geocoding error: {e}")
+            print(f"Geocoding error for location 1: {e}")
+    
+    # Handle two-location dating feature
+    search_center = (lat1, lng1)
+    search_radius = 8000  # Default 8km radius
+    
+    if request.date_location and request.date_location.strip():
+        # Parse date's location
+        lat2, lng2 = lat1, lng1  # Default to same location
+        
+        if gmaps:
+            try:
+                geocode_result = gmaps.geocode(request.date_location)
+                if geocode_result:
+                    location = geocode_result[0]["geometry"]["location"]
+                    lat2, lng2 = location["lat"], location["lng"]
+                    
+                    # Calculate optimal midpoint and search radius
+                    search_center, search_radius = calculate_midpoint_and_radius(
+                        (lat1, lng1), (lat2, lng2)
+                    )
+                    
+                    print(f"Two-location mode: Person 1 at ({lat1:.4f}, {lng1:.4f}), Person 2 at ({lat2:.4f}, {lng2:.4f})")
+                    print(f"Search center: ({search_center[0]:.4f}, {search_center[1]:.4f}), radius: {search_radius}m")
+                    
+            except Exception as e:
+                print(f"Geocoding error for date location: {e}")
     
     # Generate activities based on preferences
     activities = generate_activities(
         event_type=request.event_type,
         budget=request.budget,
         vibes=request.vibes,
-        location=(lat, lng),
+        location=search_center,
         time_available=request.time_available
     )
     
     # Find real places if Google Maps is available
     if gmaps:
-        activities = enhance_with_real_places(activities, (lat, lng), request.vibes)
+        activities = enhance_with_real_places(
+            activities, 
+            search_center, 
+            request.vibes,
+            custom_radius=search_radius
+        )
+    
+    # Add travel information for two-location mode
+    for activity in activities:
+        if request.date_location and request.date_location.strip():
+            # Calculate distances for both people
+            venue_location = (activity["location"]["lat"], activity["location"]["lng"])
+            
+            distance1_km = haversine_distance((lat1, lng1), venue_location)
+            distance2_km = haversine_distance((lat2, lng2), venue_location)
+            
+            activity["travel_person1"] = {
+                "distance_km": round(distance1_km, 1),
+                "distance_mi": round(distance1_km * 0.621371, 1)
+            }
+            activity["travel_person2"] = {
+                "distance_km": round(distance2_km, 1), 
+                "distance_mi": round(distance2_km * 0.621371, 1)
+            }
+            
+            # Calculate fairness score (0-100, where 100 is perfectly fair)
+            max_distance = max(distance1_km, distance2_km)
+            min_distance = min(distance1_km, distance2_km)
+            if max_distance > 0:
+                fairness_score = (min_distance / max_distance) * 100
+            else:
+                fairness_score = 100
+            activity["fairness_score"] = round(fairness_score, 1)
     
     return {
         "success": True,
-        "center": {"lat": lat, "lng": lng},
+        "center": {"lat": search_center[0], "lng": search_center[1]},
+        "two_location_mode": bool(request.date_location and request.date_location.strip()),
+        "search_radius_km": search_radius / 1000,
         "activities": activities
     }
 
@@ -340,7 +401,7 @@ def generate_smart_search_query(activity_name: str, activity_type: str, vibes: L
     import random
     return random.choice(base_queries)
 
-def enhance_with_real_places(activities: List[Dict], center: tuple, vibes: List[str] = None) -> List[Dict]:
+def enhance_with_real_places(activities: List[Dict], center: tuple, vibes: List[str] = None, custom_radius: int = None) -> List[Dict]:
     """Enhance activities with real Google Places data using intelligent search"""
     if not gmaps:
         return activities
@@ -417,10 +478,12 @@ def enhance_with_real_places(activities: List[Dict], center: tuple, vibes: List[
             
             # First try nearby search for location accuracy
             if places_type:
+                # Use custom radius if provided, otherwise use 8km default
+                search_radius = custom_radius if custom_radius is not None else 8000
                 try:
                     places_result = gmaps.places_nearby(
                         location=center,
-                        radius=8000,  # 8km radius
+                        radius=search_radius,
                         type=places_type,
                         language="en"
                     )
