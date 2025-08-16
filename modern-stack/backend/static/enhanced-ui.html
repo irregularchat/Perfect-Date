@@ -1052,6 +1052,27 @@
                                                 <span class="font-medium text-gray-700">📞 Phone:</span>
                                                 <span class="text-blue-600">${item.phone || generateMockPhone()}</span>
                                             </div>
+                                            ${item.travel_person1 ? `
+                                            <div class="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-200">
+                                                <div class="text-xs font-medium text-blue-800 mb-1">🚗 Travel Info</div>
+                                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                                    <div>
+                                                        <span class="font-medium text-blue-700">You:</span>
+                                                        <span class="text-blue-600">${item.travel_person1.distance_mi} mi</span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="font-medium text-blue-700">Date:</span>
+                                                        <span class="text-blue-600">${item.travel_person2.distance_mi} mi</span>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-1">
+                                                    <span class="font-medium text-blue-700">Fairness:</span>
+                                                    <span class="text-blue-600">${item.fairness_score}% equitable</span>
+                                                    ${item.fairness_score >= 85 ? '<span class="text-green-600 text-xs ml-1">✨ Very Fair</span>' : ''}
+                                                    ${item.fairness_score < 70 ? '<span class="text-orange-600 text-xs ml-1">⚖️ Slightly Unequal</span>' : ''}
+                                                </div>
+                                            </div>
+                                            ` : ''}
                                             <div class="flex flex-wrap gap-2 mt-2">
                                                 <div class="relative">
                                                     <button onclick="showDirectionsMenu(${item.location[0]}, ${item.location[1]}, ${index})" class="text-blue-600 hover:underline text-xs bg-blue-50 px-2 py-1 rounded">🗺️ Directions</button>
