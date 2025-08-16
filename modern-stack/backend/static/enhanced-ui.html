@@ -557,11 +557,24 @@
                 // Show results
                 document.getElementById('budgetDisplay').classList.remove('hidden');
                 
-                // Initialize map
-                initMap();
-                
-                // Create dynamic timeline based on input
-                createDynamicTimeline();
+                // Initialize map with delay to ensure DOM is ready
+                setTimeout(() => {
+                    initMap();
+                    
+                    // Create dynamic timeline based on input  
+                    createDynamicTimeline();
+                    
+                    // Ensure markers are added with multiple attempts
+                    setTimeout(() => {
+                        console.log('Ensuring markers are visible after timeline creation...');
+                        addMarkersToMap();
+                    }, 300);
+                    
+                    setTimeout(() => {
+                        console.log('Second marker attempt...');
+                        addMarkersToMap();
+                    }, 800);
+                }, 100);
                 
                 // Scroll to results
                 document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
@@ -663,10 +676,13 @@
 
         // Initialize interactive map with user's location
         function initMap() {
-            if (!map) {
-                // Try to get user's actual location
-                if (navigator.geolocation && !map) {
-                    navigator.geolocation.getCurrentPosition(
+            // Always reset map since DOM gets recreated in generateDate
+            map = null;
+            markers = [];
+            
+            // Try to get user's actual location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
                         (position) => {
                             const userLat = position.coords.latitude;
                             const userLng = position.coords.longitude;
@@ -684,7 +700,7 @@
                         (error) => {
                             // Fallback to default location
                             console.log('Geolocation failed, using default');
-                            map = L.map('map').setView([35.7796, -78.6382], 13); // Default to Raleigh, NC
+                            map = L.map('map').setView([35.0526, -78.8783], 13); // Default to Fayetteville, NC
                             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                                 attribution: '© OpenStreetMap contributors'
                             }).addTo(map);
@@ -692,7 +708,7 @@
                     );
                 } else {
                     // Fallback if geolocation not available
-                    map = L.map('map').setView([35.7796, -78.6382], 13); // Default to Raleigh, NC
+                    map = L.map('map').setView([35.0526, -78.8783], 13); // Default to Fayetteville, NC
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         attribution: '© OpenStreetMap contributors'
                     }).addTo(map);
@@ -832,17 +848,43 @@
                 
                 console.log(`Marker ${index}: ${item.businessName || item.activity} at [${item.location[0]}, ${item.location[1]}]`);
                 
+                const businessAddress = generateMockAddress(item.location);
                 const marker = L.marker(item.location)
                     .addTo(map)
                     .bindPopup(`
-                        <div class="p-3 min-w-48">
-                            <div class="font-bold text-lg text-indigo-700 mb-1">${item.businessName || item.activity}</div>
-                            <div class="text-gray-600 mb-2">${item.activity}</div>
-                            <div class="text-sm space-y-1">
-                                <div><span class="font-medium">⏰</span> ${item.time}</div>
-                                <div><span class="font-medium">💰</span> $${item.cost}</div>
-                                <div><span class="font-medium">📍</span> Step ${index + 1} of ${timeline.length}</div>
-                                <div><span class="font-medium">🌍</span> ${item.location[0].toFixed(4)}, ${item.location[1].toFixed(4)}</div>
+                        <div class="p-4 min-w-64 max-w-80">
+                            <div class="font-bold text-xl text-indigo-700 mb-2">${item.businessName || item.activity}</div>
+                            <div class="text-gray-700 font-medium mb-3">${item.activity}</div>
+                            
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-medium text-gray-600">📍</span>
+                                    <span class="text-gray-800">${businessAddress}</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-medium text-gray-600">⏰</span>
+                                    <span class="text-gray-800">${item.time}</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-medium text-gray-600">💰</span>
+                                    <span class="text-gray-800">$${item.cost}</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-medium text-gray-600">📋</span>
+                                    <span class="text-gray-800">Step ${index + 1} of ${timeline.length}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <button onclick="scrollToTimelineItem(${index})" class="px-3 py-1 bg-indigo-600 text-white rounded-md text-xs hover:bg-indigo-700 transition">
+                                    👁️ View Details
+                                </button>
+                                <button onclick="openSmartMaps(${item.location[0]}, ${item.location[1]})" class="px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 transition">
+                                    🧭 Directions
+                                </button>
+                                <button onclick="callBusiness('${generateMockPhone()}')" class="px-3 py-1 bg-green-600 text-white rounded-md text-xs hover:bg-green-700 transition">
+                                    📞 Call
+                                </button>
                             </div>
                         </div>
                     `);
@@ -1133,6 +1175,29 @@
             const searchQuery = encodeURIComponent(businessName + ' Fayetteville NC');
             const url = `https://www.google.com/search?q=${searchQuery}`;
             window.open(url, '_blank');
+        }
+
+        function scrollToTimelineItem(index) {
+            // Scroll to the specific timeline item
+            const timelineItems = document.querySelectorAll('.timeline-item');
+            if (timelineItems[index]) {
+                timelineItems[index].scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+                
+                // Highlight the item temporarily
+                timelineItems[index].style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                timelineItems[index].style.color = 'white';
+                timelineItems[index].style.transform = 'scale(1.02)';
+                timelineItems[index].style.transition = 'all 0.3s ease';
+                
+                setTimeout(() => {
+                    timelineItems[index].style.background = '';
+                    timelineItems[index].style.color = '';
+                    timelineItems[index].style.transform = '';
+                }, 2000);
+            }
         }
 
         // Quick vibe selection for classic form
