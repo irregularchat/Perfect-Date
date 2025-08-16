@@ -66,10 +66,25 @@ def calculate_midpoint_and_radius(location1: tuple, location2: tuple) -> tuple:
     
     Returns:
         (midpoint, radius) where midpoint is (lat, lng) and radius is in meters
+        
+    Raises:
+        ValueError: If the distance is too large for practical dating
     """
     if location1 == location2:
         # Same location, use small radius around that point
         return location1, 5000
+    
+    # Calculate distance first to validate practicality
+    distance_km = haversine_distance(location1, location2)
+    
+    # Validate realistic dating distances
+    if distance_km > 1000:  # More than 1000km (620 miles) apart
+        raise ValueError(f"Distance too large for dating: {distance_km:.0f} km ({distance_km * 0.621371:.0f} miles). "
+                        f"Two-location dating works best for people within 620 miles of each other. "
+                        f"Consider using single-location mode instead.")
+    
+    if distance_km > 500:  # 500-1000km - warn but allow
+        print(f"WARNING: Very long distance ({distance_km:.0f} km). Midpoint may be impractical.")
     
     # Calculate geographic midpoint using spherical geometry
     lat1, lon1 = map(math.radians, location1)
@@ -97,9 +112,6 @@ def calculate_midpoint_and_radius(location1: tuple, location2: tuple) -> tuple:
     # Convert back to degrees
     midpoint = (math.degrees(midpoint_lat), math.degrees(midpoint_lon))
     
-    # Calculate search radius based on distance between locations
-    distance_km = haversine_distance(location1, location2)
-    
     # Smart radius based on distance (from roadmap specifications)
     if distance_km < 8:      # Close by (< 5 miles)
         radius = min(4800, distance_km * 1000 * 0.6)  # 60%, max 3 miles
@@ -107,8 +119,10 @@ def calculate_midpoint_and_radius(location1: tuple, location2: tuple) -> tuple:
         radius = min(16000, distance_km * 1000 * 0.4) # 40%, max 10 miles
     elif distance_km < 80:   # Long distance (< 50 miles)
         radius = min(24000, distance_km * 1000 * 0.3) # 30%, max 15 miles
-    else:                    # Very long distance
-        radius = min(40000, distance_km * 1000 * 0.2) # 20%, max 25 miles
+    elif distance_km < 200:  # Very long distance (< 125 miles)
+        radius = min(40000, distance_km * 1000 * 0.25) # 25%, max 25 miles
+    else:                    # Extremely long distance
+        radius = min(80000, distance_km * 1000 * 0.15) # 15%, max 50 miles
     
     print(f"Calculated midpoint {midpoint} with radius {radius}m for locations {distance_km:.1f}km apart")
     
@@ -224,12 +238,24 @@ async def generate_date(request: DateRequest):
                     lat2, lng2 = location["lat"], location["lng"]
                     
                     # Calculate optimal midpoint and search radius
-                    search_center, search_radius = calculate_midpoint_and_radius(
-                        (lat1, lng1), (lat2, lng2)
-                    )
-                    
-                    print(f"Two-location mode: Person 1 at ({lat1:.4f}, {lng1:.4f}), Person 2 at ({lat2:.4f}, {lng2:.4f})")
-                    print(f"Search center: ({search_center[0]:.4f}, {search_center[1]:.4f}), radius: {search_radius}m")
+                    try:
+                        search_center, search_radius = calculate_midpoint_and_radius(
+                            (lat1, lng1), (lat2, lng2)
+                        )
+                        
+                        print(f"Two-location mode: Person 1 at ({lat1:.4f}, {lng1:.4f}), Person 2 at ({lat2:.4f}, {lng2:.4f})")
+                        print(f"Search center: ({search_center[0]:.4f}, {search_center[1]:.4f}), radius: {search_radius}m")
+                        
+                    except ValueError as e:
+                        # Distance too large for practical dating
+                        print(f"Distance validation failed: {e}")
+                        return {
+                            "success": False,
+                            "error": "distance_too_large",
+                            "message": str(e),
+                            "suggestion": "Try using single-location mode, or choose locations closer together (within 620 miles).",
+                            "distance_km": haversine_distance((lat1, lng1), (lat2, lng2))
+                        }
                     
             except Exception as e:
                 print(f"Geocoding error for date location: {e}")
