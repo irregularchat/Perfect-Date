@@ -23,8 +23,61 @@ except ImportError:
 
 import uvicorn
 import math
+from typing import Tuple, List
 
 app = FastAPI(title="Perfect Date Generator")
+
+# Major cities and airports for long-distance midpoint dating
+MAJOR_DESTINATIONS = {
+    # North America
+    "New York, NY": (40.7128, -74.0060),
+    "Los Angeles, CA": (34.0522, -118.2437),
+    "Chicago, IL": (41.8781, -87.6298),
+    "Toronto, ON": (43.6532, -79.3832),
+    "Vancouver, BC": (49.2827, -123.1207),
+    "Miami, FL": (25.7617, -80.1918),
+    "Las Vegas, NV": (36.1699, -115.1398),
+    "San Francisco, CA": (37.7749, -122.4194),
+    "Denver, CO": (39.7392, -104.9903),
+    "Seattle, WA": (47.6062, -122.3321),
+    "Atlanta, GA": (33.7490, -84.3880),
+    "Dallas, TX": (32.7767, -96.7970),
+    "Phoenix, AZ": (33.4484, -112.0740),
+    "Boston, MA": (42.3601, -71.0589),
+    "Washington, DC": (38.9072, -77.0369),
+    
+    # Europe
+    "London, UK": (51.5074, -0.1278),
+    "Paris, France": (48.8566, 2.3522),
+    "Amsterdam, Netherlands": (52.3676, 4.9041),
+    "Rome, Italy": (41.9028, 12.4964),
+    "Barcelona, Spain": (41.3851, 2.1734),
+    "Berlin, Germany": (52.5200, 13.4050),
+    "Vienna, Austria": (48.2082, 16.3738),
+    "Zurich, Switzerland": (47.3769, 8.5417),
+    "Stockholm, Sweden": (59.3293, 18.0686),
+    "Copenhagen, Denmark": (55.6761, 12.5683),
+    
+    # Asia-Pacific
+    "Tokyo, Japan": (35.6762, 139.6503),
+    "Seoul, South Korea": (37.5665, 126.9780),
+    "Shanghai, China": (31.2304, 121.4737),
+    "Beijing, China": (39.9042, 116.4074),
+    "Hong Kong": (22.3193, 114.1694),
+    "Singapore": (1.3521, 103.8198),
+    "Sydney, Australia": (-33.8688, 151.2093),
+    "Melbourne, Australia": (-37.8136, 144.9631),
+    "Bangkok, Thailand": (13.7563, 100.5018),
+    "Mumbai, India": (19.0760, 72.8777),
+    "Delhi, India": (28.7041, 77.1025),
+    
+    # Key Airports/Hubs
+    "Reykjavik, Iceland": (64.1466, -21.9426),  # Great for US-Europe
+    "Anchorage, AK": (61.2181, -149.9003),     # Great for US-Asia via polar route
+    "Honolulu, HI": (21.3099, -157.8581),      # Pacific hub
+    "Panama City, Panama": (8.9824, -79.5199), # Central America hub
+    "Dubai, UAE": (25.2048, 55.2708),          # Middle East hub
+}
 
 # Geographic calculation utilities
 def haversine_distance(coord1: tuple, coord2: tuple) -> float:
@@ -127,6 +180,93 @@ def calculate_midpoint_and_radius(location1: tuple, location2: tuple) -> tuple:
     print(f"Calculated midpoint {midpoint} with radius {radius}m for locations {distance_km:.1f}km apart")
     
     return midpoint, int(radius)
+
+def find_destination_cities(location1: tuple, location2: tuple, num_suggestions: int = 3) -> List[dict]:
+    """
+    Find major cities/airports that make good meeting destinations for long-distance dating
+    
+    Args:
+        location1: (lat, lng) tuple for person 1
+        location2: (lat, lng) tuple for person 2
+        num_suggestions: Number of destination suggestions to return
+    
+    Returns:
+        List of destination dictionaries with city info and travel distances
+    """
+    actual_midpoint_lat, actual_midpoint_lng = calculate_geographic_midpoint(location1, location2)
+    total_distance = haversine_distance(location1, location2)
+    
+    destination_scores = []
+    
+    for city_name, city_coords in MAJOR_DESTINATIONS.items():
+        # Calculate distances from each person to this destination
+        dist1 = haversine_distance(location1, city_coords)
+        dist2 = haversine_distance(location2, city_coords)
+        
+        # Calculate fairness score (prefer cities where both people travel similar distances)
+        max_dist = max(dist1, dist2)
+        min_dist = min(dist1, dist2)
+        fairness_score = (min_dist / max_dist) * 100 if max_dist > 0 else 100
+        
+        # Calculate distance from actual geographic midpoint (prefer cities closer to true midpoint)
+        midpoint_distance = haversine_distance((actual_midpoint_lat, actual_midpoint_lng), city_coords)
+        midpoint_score = max(0, 100 - (midpoint_distance / 100))  # Penalty for being far from midpoint
+        
+        # Calculate total travel burden (prefer destinations that minimize total travel)
+        total_travel = dist1 + dist2
+        travel_efficiency = max(0, 100 - ((total_travel - total_distance) / total_distance * 100))
+        
+        # Combined score: fairness (40%), midpoint proximity (30%), travel efficiency (30%)
+        combined_score = (fairness_score * 0.4) + (midpoint_score * 0.3) + (travel_efficiency * 0.3)
+        
+        # Bonus for major airline hubs for international travel
+        hub_bonus = 0
+        if "UK" in city_name or "Iceland" in city_name or "AK" in city_name or "Dubai" in city_name:
+            hub_bonus = 10
+        
+        destination_scores.append({
+            "city": city_name,
+            "coordinates": city_coords,
+            "distance_person1_km": dist1,
+            "distance_person1_mi": dist1 * 0.621371,
+            "distance_person2_km": dist2,
+            "distance_person2_mi": dist2 * 0.621371,
+            "fairness_score": fairness_score,
+            "total_travel_km": total_travel,
+            "total_travel_mi": total_travel * 0.621371,
+            "score": combined_score + hub_bonus,
+            "is_hub": hub_bonus > 0
+        })
+    
+    # Sort by score and return top suggestions
+    destination_scores.sort(key=lambda x: x["score"], reverse=True)
+    return destination_scores[:num_suggestions]
+
+def calculate_geographic_midpoint(location1: tuple, location2: tuple) -> tuple:
+    """Calculate the pure geographic midpoint (used for destination scoring)"""
+    lat1, lon1 = map(math.radians, location1)
+    lat2, lon2 = map(math.radians, location2)
+    
+    # Convert to cartesian coordinates
+    x1 = math.cos(lat1) * math.cos(lon1)
+    y1 = math.cos(lat1) * math.sin(lon1)
+    z1 = math.sin(lat1)
+    
+    x2 = math.cos(lat2) * math.cos(lon2)
+    y2 = math.cos(lat2) * math.sin(lon2)
+    z2 = math.sin(lat2)
+    
+    # Average the cartesian coordinates
+    x = (x1 + x2) / 2
+    y = (y1 + y2) / 2
+    z = (z1 + z2) / 2
+    
+    # Convert back to spherical coordinates
+    hyp = math.sqrt(x * x + y * y)
+    midpoint_lat = math.atan2(z, hyp)
+    midpoint_lon = math.atan2(y, x)
+    
+    return (math.degrees(midpoint_lat), math.degrees(midpoint_lon))
 
 # Configure CORS
 app.add_middleware(
@@ -247,14 +387,21 @@ async def generate_date(request: DateRequest):
                         print(f"Search center: ({search_center[0]:.4f}, {search_center[1]:.4f}), radius: {search_radius}m")
                         
                     except ValueError as e:
-                        # Distance too large for practical dating
-                        print(f"Distance validation failed: {e}")
+                        # Distance too large for practical dating - suggest destination cities
+                        distance_km = haversine_distance((lat1, lng1), (lat2, lng2))
+                        print(f"Distance validation failed: {distance_km:.0f}km - suggesting destination cities")
+                        
+                        # Find best destination cities for this long-distance pair
+                        destination_suggestions = find_destination_cities((lat1, lng1), (lat2, lng2), 5)
+                        
                         return {
                             "success": False,
-                            "error": "distance_too_large",
+                            "error": "distance_too_large_with_destinations",
                             "message": str(e),
-                            "suggestion": "Try using single-location mode, or choose locations closer together (within 620 miles).",
-                            "distance_km": haversine_distance((lat1, lng1), (lat2, lng2))
+                            "distance_km": distance_km,
+                            "destination_mode": True,
+                            "suggested_destinations": destination_suggestions,
+                            "original_midpoint": calculate_geographic_midpoint((lat1, lng1), (lat2, lng2))
                         }
                     
             except Exception as e:
