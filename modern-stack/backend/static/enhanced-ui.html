@@ -239,7 +239,12 @@
         <div id="results" class="hidden space-y-8">
             <!-- Interactive Map -->
             <div class="bg-white rounded-2xl shadow-xl p-6">
-                <h3 class="text-xl font-bold mb-4">Interactive Map</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Interactive Map</h3>
+                    <button onclick="addMarkersToMap()" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                        🗺️ Refresh Markers
+                    </button>
+                </div>
                 <div id="map" class="h-96 rounded-lg"></div>
             </div>
 
@@ -504,7 +509,12 @@
                 resultsDiv.innerHTML = `
                     <!-- Interactive Map -->
                     <div class="bg-white rounded-2xl shadow-xl p-6">
-                        <h3 class="text-xl font-bold mb-4">Interactive Map</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold">Interactive Map</h3>
+                            <button onclick="addMarkersToMap()" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                                🗺️ Refresh Markers
+                            </button>
+                        </div>
                         <div id="map" class="h-96 rounded-lg"></div>
                     </div>
 
@@ -802,6 +812,11 @@
                 return;
             }
             
+            if (!timeline || timeline.length === 0) {
+                console.warn('No timeline data available for markers');
+                return;
+            }
+            
             // Clear existing markers
             markers.forEach(m => map.removeLayer(m));
             markers = [];
@@ -810,6 +825,11 @@
             
             // Add new markers
             timeline.forEach((item, index) => {
+                if (!item.location || !Array.isArray(item.location) || item.location.length !== 2) {
+                    console.warn(`Invalid location data for item ${index}:`, item);
+                    return;
+                }
+                
                 console.log(`Marker ${index}: ${item.businessName || item.activity} at [${item.location[0]}, ${item.location[1]}]`);
                 
                 const marker = L.marker(item.location)
@@ -1152,7 +1172,19 @@
             if (sharedDate) {
                 try {
                     const decodedTimeline = JSON.parse(atob(sharedDate));
+                    
+                    // Update coordinates to current location (Fayetteville)
+                    const baseLat = 35.0526;
+                    const baseLng = -78.8783;
+                    
+                    decodedTimeline.forEach((item, index) => {
+                        // Update coordinates to be around Fayetteville instead of old location
+                        item.location = [baseLat + (index * 0.003), baseLng + (index * 0.003)];
+                    });
+                    
                     timeline = decodedTimeline;
+                    
+                    console.log('Loaded shared timeline with updated coordinates:', timeline);
                     
                     // Show the results section
                     document.getElementById('results').classList.remove('hidden');
@@ -1162,7 +1194,22 @@
                     // Initialize map and render timeline
                     initMap();
                     renderTimeline();
-                    addMarkersToMap();
+                    
+                    // Wait for map to be ready, then add markers multiple times to ensure they show
+                    setTimeout(() => {
+                        console.log('First attempt to add markers...');
+                        addMarkersToMap();
+                    }, 500);
+                    
+                    setTimeout(() => {
+                        console.log('Second attempt to add markers...');
+                        addMarkersToMap();
+                    }, 1000);
+                    
+                    setTimeout(() => {
+                        console.log('Final attempt to add markers...');
+                        addMarkersToMap();
+                    }, 2000);
                     
                     // Scroll to results
                     setTimeout(() => {
