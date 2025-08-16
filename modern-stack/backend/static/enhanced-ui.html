@@ -420,19 +420,68 @@
 
         // Geolocation for wizard
         function getLocation() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Getting location...';
+            btn.disabled = true;
+            
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    // Reverse geocode to get address
-                    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
-                        .then(r => r.json())
-                        .then(data => {
-                            const location = data.display_name;
-                            document.getElementById('locationInput').value = location;
-                            dateData.location = location;
-                        });
-                });
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        console.log(`Got location: ${lat}, ${lon}`);
+                        
+                        // Reverse geocode to get address
+                        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+                            .then(r => r.json())
+                            .then(data => {
+                                const location = data.display_name;
+                                console.log(`Reverse geocoded to: ${location}`);
+                                document.getElementById('locationInput').value = location;
+                                dateData.location = location;
+                                btn.innerHTML = originalText;
+                                btn.disabled = false;
+                            })
+                            .catch((error) => {
+                                console.error('Reverse geocoding failed:', error);
+                                document.getElementById('locationInput').value = `${lat}, ${lon}`;
+                                dateData.location = `${lat}, ${lon}`;
+                                btn.innerHTML = originalText;
+                                btn.disabled = false;
+                            });
+                    },
+                    (error) => {
+                        console.error('Geolocation error:', error);
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        
+                        let errorMessage = 'Location access failed. ';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage += 'Permission denied - please allow location access in your browser.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage += 'Location information unavailable.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage += 'Location request timed out.';
+                                break;
+                            default:
+                                errorMessage += 'Unknown error occurred.';
+                        }
+                        alert(errorMessage);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            } else {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('Geolocation is not supported by your browser');
             }
         }
 
@@ -447,25 +496,51 @@
                     (position) => {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
+                        console.log(`Quick location got: ${lat}, ${lon}`);
+                        
                         // Reverse geocode to get address
                         fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
                             .then(r => r.json())
                             .then(data => {
                                 const location = data.display_name || `${lat}, ${lon}`;
+                                console.log(`Quick location reverse geocoded to: ${location}`);
                                 document.getElementById('quickLocation').value = location;
                                 btn.innerHTML = '📍 Use My Location';
                                 btn.disabled = false;
                             })
-                            .catch(() => {
+                            .catch((error) => {
+                                console.error('Quick location reverse geocoding failed:', error);
+                                document.getElementById('quickLocation').value = `${lat}, ${lon}`;
                                 btn.innerHTML = '📍 Use My Location';
                                 btn.disabled = false;
-                                alert('Could not get address from coordinates');
+                                alert('Could not get address from coordinates, using coordinates instead');
                             });
                     },
                     (error) => {
+                        console.error('Quick location geolocation error:', error);
                         btn.innerHTML = '📍 Use My Location';
                         btn.disabled = false;
-                        alert('Location access denied. Please enter manually.');
+                        
+                        let errorMessage = 'Location access failed. ';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage += 'Permission denied - please allow location access in your browser.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage += 'Location information unavailable.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage += 'Location request timed out.';
+                                break;
+                            default:
+                                errorMessage += 'Unknown error occurred.';
+                        }
+                        alert(errorMessage);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
                     }
                 );
             } else {
