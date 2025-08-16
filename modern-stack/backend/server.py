@@ -256,6 +256,26 @@ def enhance_with_real_places(activities: List[Dict], center: tuple, vibes: List[
     if not gmaps:
         return activities
     
+    # Get location name for better text search targeting
+    location_name = "Fayetteville NC"  # Default
+    try:
+        reverse_geocode = gmaps.reverse_geocode(center)
+        if reverse_geocode:
+            city = None
+            state = None
+            # Extract city and state from the first result
+            for component in reverse_geocode[0].get("address_components", []):
+                if "locality" in component.get("types", []):
+                    city = component["long_name"]
+                elif "administrative_area_level_1" in component.get("types", []):
+                    state = component["short_name"]
+            if city and state:
+                location_name = f"{city} {state}"
+    except Exception as e:
+        print(f"Reverse geocoding failed: {e}")
+    
+    print(f"Using location: {location_name} at coordinates {center}")
+    
     enhanced = []
     used_place_ids = set()  # Track used places to ensure diversity
     
@@ -270,13 +290,66 @@ def enhance_with_real_places(activities: List[Dict], center: tuple, vibes: List[
             
             print(f"Searching for: '{search_query}' for activity '{activity.get('activity')}'")
             
-            # Use text search for more relevant results
-            places_result = gmaps.places(
-                query=search_query,
-                location=center,
-                radius=8000,  # Increased radius for better results
-                language="en"
-            )
+            # Try places_nearby first for location accuracy, then fallback to text search
+            places_result = None
+            
+            # Map search queries to Google Places types for nearby search
+            type_mapping = {
+                "restaurant": "restaurant",
+                "fine dining": "restaurant", 
+                "romantic restaurant": "restaurant",
+                "upscale restaurant": "restaurant",
+                "date night restaurant": "restaurant",
+                "bistro": "restaurant",
+                "cafe": "cafe",
+                "coffee": "cafe",
+                "specialty coffee": "cafe",
+                "spa": "spa",
+                "day spa": "spa",
+                "couples spa": "spa",
+                "wellness": "spa",
+                "bar": "bar",
+                "wine bar": "bar",
+                "cocktail bar": "bar",
+                "dance club": "night_club",
+                "nightclub": "night_club",
+                "entertainment": "amusement_park",
+                "arcade": "amusement_park",
+                "bowling": "bowling_alley",
+                "mini golf": "amusement_park"
+            }
+            
+            # Get Google Places type from search query
+            places_type = None
+            for key, ptype in type_mapping.items():
+                if key in search_query.lower():
+                    places_type = ptype
+                    break
+            
+            # First try nearby search for location accuracy
+            if places_type:
+                try:
+                    places_result = gmaps.places_nearby(
+                        location=center,
+                        radius=8000,  # 8km radius
+                        type=places_type,
+                        language="en"
+                    )
+                    print(f"Nearby search for type '{places_type}' returned {len(places_result.get('results', []))} results")
+                except Exception as e:
+                    print(f"Nearby search failed: {e}")
+            
+            # Fallback to text search if nearby didn't work or no results
+            if not places_result or not places_result.get("results"):
+                try:
+                    # Include location in the query text for better targeting
+                    places_result = gmaps.places(
+                        query=f"{search_query} in {location_name}",
+                        language="en"
+                    )
+                    print(f"Text search for '{search_query} in {location_name}' returned {len(places_result.get('results', []))} results")
+                except Exception as e:
+                    print(f"Text search failed: {e}")
             
             # Find the first place that hasn't been used yet
             selected_place = None
