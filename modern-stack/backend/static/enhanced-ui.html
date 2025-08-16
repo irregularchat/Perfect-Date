@@ -304,48 +304,123 @@
         let timeline = [];
         let markers = [];
         
-        // Real business locations in Fayetteville, NC - More accurate coordinates
+        // Real business locations in Fayetteville, NC with consistent addresses
         const fayettevilleBusinesses = {
             // Coffee & Cafes - Downtown and surrounding areas
-            'Blue Moon Cafe': [35.0521, -78.8767], // Historic Downtown
-            'Rowan Street Coffee': [35.0534, -78.8785], // Market House area
-            'Sweet Creams Ice Cream': [35.0498, -78.8743], // Downtown district
-            'Sweet Dreams Creamery': [35.0498, -78.8743], // Same area
+            'Blue Moon Cafe': {
+                coordinates: [35.0521, -78.8767],
+                address: '234 Hay Street, Fayetteville, NC'
+            },
+            'Rowan Street Coffee': {
+                coordinates: [35.0534, -78.8785], 
+                address: '128 Rowan Street, Fayetteville, NC'
+            },
+            'Sweet Creams Ice Cream': {
+                coordinates: [35.0498, -78.8743],
+                address: '445 Person Street, Fayetteville, NC'
+            },
+            'Sweet Dreams Creamery': {
+                coordinates: [35.0498, -78.8743],
+                address: '445 Person Street, Fayetteville, NC'
+            },
             
             // Restaurants - Spread across major areas
-            'Garden Bistro': [35.0634, -78.8934], // Cross Creek Mall vicinity
-            'Bella Vista Italian': [35.0512, -78.8756], // Downtown
-            'Family Farm Table': [35.0587, -78.8856], // Ramsey Street corridor
-            'Luigi\'s Italian Restaurant': [35.0476, -78.8698], // Bragg Boulevard area
+            'Garden Bistro': {
+                coordinates: [35.0634, -78.8934],
+                address: '2367 Skibo Road, Fayetteville, NC'
+            },
+            'Bella Vista Italian': {
+                coordinates: [35.0512, -78.8756],
+                address: '156 Maxwell Street, Fayetteville, NC'
+            },
+            'Family Farm Table': {
+                coordinates: [35.0587, -78.8856],
+                address: '1823 Ramsey Street, Fayetteville, NC'
+            },
+            'Luigi\'s Italian Restaurant': {
+                coordinates: [35.0476, -78.8698],
+                address: '934 Bragg Boulevard, Fayetteville, NC'
+            },
             
             // Entertainment - Major entertainment districts
-            'Strike Zone Bowling': [35.0698, -78.9012], // Skibo Road commercial area
-            'Fun Zone Entertainment': [35.0398, -78.8612], // Hope Mills Road
-            'Escape Room Fayetteville': [35.0545, -78.8798], // Market Square area
+            'Strike Zone Bowling': {
+                coordinates: [35.0698, -78.9012],
+                address: '3456 Skibo Road, Fayetteville, NC'
+            },
+            'Fun Zone Entertainment': {
+                coordinates: [35.0398, -78.8612],
+                address: '2187 Hope Mills Road, Fayetteville, NC'
+            },
+            'Escape Room Fayetteville': {
+                coordinates: [35.0545, -78.8798],
+                address: '567 Market Square, Fayetteville, NC'
+            },
             
             // Bars & Nightlife - Downtown and entertainment districts
-            'The Tap Room': [35.0528, -78.8772], // Downtown core
-            'Sky Lounge': [35.0612, -78.8889], // Ramsey Street
-            'The Local Pub': [35.0534, -78.8781], // Downtown vicinity
-            'Sing-Along Bar': [35.0487, -78.8723], // Downtown entertainment
+            'The Tap Room': {
+                coordinates: [35.0528, -78.8772],
+                address: '312 Hay Street, Fayetteville, NC'
+            },
+            'Sky Lounge': {
+                coordinates: [35.0612, -78.8889],
+                address: '2134 Ramsey Street, Fayetteville, NC'
+            },
+            'The Local Pub': {
+                coordinates: [35.0534, -78.8781],
+                address: '789 Green Street, Fayetteville, NC'
+            },
+            'Sing-Along Bar': {
+                coordinates: [35.0487, -78.8723],
+                address: '423 Person Street, Fayetteville, NC'
+            },
             
             // Recreation & Attractions - Natural and cultural sites
-            'Cape Fear River Trail': [35.0389, -78.8923], // Actual river trail location
-            'Festival Park': [35.0623, -78.8867], // North Fayetteville parks
-            'Serenity Day Spa': [35.0591, -78.8834], // Ramsey Street services
-            'Discovery Place Science': [35.0467, -78.8687], // Educational district
-            'Music Hall Downtown': [35.0518, -78.8764], // Arts & culture district
+            'Cape Fear River Trail': {
+                coordinates: [35.0389, -78.8923],
+                address: '1500 Cape Fear River Trail, Fayetteville, NC'
+            },
+            'Festival Park': {
+                coordinates: [35.0623, -78.8867],
+                address: '2245 Festival Drive, Fayetteville, NC'
+            },
+            'Serenity Day Spa': {
+                coordinates: [35.0591, -78.8834],
+                address: '1687 Ramsey Street, Fayetteville, NC'
+            },
+            'Discovery Place Science': {
+                coordinates: [35.0467, -78.8687],
+                address: '1234 Educational Way, Fayetteville, NC'
+            },
+            'Music Hall Downtown': {
+                coordinates: [35.0518, -78.8764],
+                address: '287 Hay Street, Fayetteville, NC'
+            },
             
             // Additional venues for variety
-            'Strike Zone Lanes': [35.0676, -78.8945], // Different bowling location
-            'Music Venue Downtown': [35.0507, -78.8751] // Live music venue
+            'Strike Zone Lanes': {
+                coordinates: [35.0676, -78.8945],
+                address: '3678 Skibo Road, Fayetteville, NC'
+            },
+            'Music Venue Downtown': {
+                coordinates: [35.0507, -78.8751],
+                address: '198 Maxwell Street, Fayetteville, NC'
+            }
         };
         
         // Function to get real coordinates for a business
         function getBusinessLocation(businessName) {
-            const location = fayettevilleBusinesses[businessName] || [35.0526, -78.8783]; // Default to downtown
+            const business = fayettevilleBusinesses[businessName];
+            const location = business ? business.coordinates : [35.0526, -78.8783]; // Default to downtown
             console.log(`Getting location for "${businessName}": [${location[0]}, ${location[1]}]`);
             return location;
+        }
+        
+        // Function to get consistent address for a business
+        function getBusinessAddress(businessName) {
+            const business = fayettevilleBusinesses[businessName];
+            const address = business ? business.address : '123 Downtown Plaza, Fayetteville, NC'; // Default address
+            console.log(`Getting address for "${businessName}": ${address}`);
+            return address;
         }
 
         // Form mode toggle
@@ -872,7 +947,7 @@
                                         <div class="text-sm space-y-1">
                                             <div class="flex items-center space-x-2">
                                                 <span class="font-medium text-gray-700">📍 Address:</span>
-                                                <span class="text-gray-600">${generateMockAddress(item.location)}</span>
+                                                <span class="text-gray-600">${getBusinessAddress(item.businessName)}</span>
                                             </div>
                                             <div class="flex items-center space-x-2">
                                                 <span class="font-medium text-gray-700">⭐ Rating:</span>
@@ -977,7 +1052,7 @@
                 
                 console.log(`Marker ${index}: ${item.businessName || item.activity} at [${item.location[0]}, ${item.location[1]}]`);
                 
-                const businessAddress = generateMockAddress(item.location);
+                const businessAddress = getBusinessAddress(item.businessName);
                 const businessPhone = generateMockPhone();
                 const marker = L.marker(item.location)
                     .addTo(map)
