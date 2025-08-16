@@ -579,31 +579,45 @@
                         btn.disabled = false;
                         
                         let errorMessage = 'Location access failed. ';
+                        let useDefault = false;
+                        
                         switch(error.code) {
                             case error.PERMISSION_DENIED:
-                                errorMessage += 'Permission denied - please allow location access in your browser.';
+                                errorMessage += 'Permission denied. Please allow location access in browser settings.';
                                 break;
                             case error.POSITION_UNAVAILABLE:
-                                errorMessage += 'Location information unavailable.';
+                                errorMessage += 'Location unavailable. Using Fayetteville, NC as default.';
+                                useDefault = true;
                                 break;
                             case error.TIMEOUT:
-                                errorMessage += 'Location request timed out.';
+                                errorMessage += 'Location request timed out. Try again or enter manually.';
                                 break;
                             default:
-                                errorMessage += 'Unknown error occurred.';
+                                errorMessage += 'Unknown error. Using Fayetteville, NC as default.';
+                                useDefault = true;
                         }
-                        alert(errorMessage);
+                        
+                        // If location unavailable, use default location
+                        if (useDefault) {
+                            document.getElementById('locationInput').value = 'Fayetteville, NC';
+                            dateData.location = 'Fayetteville, NC';
+                            alert(errorMessage + '\n\nDefault location set to Fayetteville, NC. You can change it manually.');
+                        } else {
+                            alert(errorMessage);
+                        }
                     },
                     {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 60000
+                        enableHighAccuracy: false,  // Changed to false for better compatibility
+                        timeout: 5000,              // Reduced timeout
+                        maximumAge: 0               // Always get fresh location
                     }
                 );
             } else {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                alert('Geolocation is not supported by your browser');
+                alert('Geolocation is not supported by your browser. Please enter your location manually.');
+                document.getElementById('locationInput').value = 'Fayetteville, NC';
+                dateData.location = 'Fayetteville, NC';
             }
         }
 
@@ -644,31 +658,43 @@
                         btn.disabled = false;
                         
                         let errorMessage = 'Location access failed. ';
+                        let useDefault = false;
+                        
                         switch(error.code) {
                             case error.PERMISSION_DENIED:
-                                errorMessage += 'Permission denied - please allow location access in your browser.';
+                                errorMessage += 'Permission denied. Please allow location access in your browser settings.';
                                 break;
                             case error.POSITION_UNAVAILABLE:
-                                errorMessage += 'Location information unavailable.';
+                                errorMessage += 'Location unavailable. Using Fayetteville, NC as default.';
+                                useDefault = true;
                                 break;
                             case error.TIMEOUT:
-                                errorMessage += 'Location request timed out.';
+                                errorMessage += 'Location request timed out. Try again or enter manually.';
                                 break;
                             default:
-                                errorMessage += 'Unknown error occurred.';
+                                errorMessage += 'Unknown error. Using Fayetteville, NC as default.';
+                                useDefault = true;
                         }
-                        alert(errorMessage);
+                        
+                        // If location unavailable, use default location
+                        if (useDefault) {
+                            document.getElementById('quickLocation').value = 'Fayetteville, NC';
+                            alert(errorMessage + '\n\nDefault location set to Fayetteville, NC. You can change it manually.');
+                        } else {
+                            alert(errorMessage);
+                        }
                     },
                     {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 60000
+                        enableHighAccuracy: false,  // Changed to false for faster response
+                        timeout: 5000,              // Reduced timeout
+                        maximumAge: 0               // Always get fresh location
                     }
                 );
             } else {
                 btn.innerHTML = '📍 Use My Location';
                 btn.disabled = false;
-                alert('Geolocation is not supported by your browser');
+                alert('Geolocation is not supported by your browser. Please enter your location manually.');
+                document.getElementById('quickLocation').value = 'Fayetteville, NC';
             }
         }
 
