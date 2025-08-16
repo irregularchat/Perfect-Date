@@ -993,19 +993,19 @@
                                         <div class="text-sm space-y-1">
                                             <div class="flex items-center space-x-2">
                                                 <span class="font-medium text-gray-700">📍 Address:</span>
-                                                <span class="text-gray-600">${getBusinessAddress(item.businessName)}</span>
+                                                <span class="text-gray-600">${item.address || getBusinessAddress(item.businessName)}</span>
                                             </div>
                                             <div class="flex items-center space-x-2">
                                                 <span class="font-medium text-gray-700">⭐ Rating:</span>
-                                                <span class="text-yellow-600">${generateMockRating()} (${Math.floor(Math.random() * 200 + 50)} reviews)</span>
+                                                <span class="text-yellow-600">${item.rating || generateMockRating()} ${item.rating ? '' : `(${Math.floor(Math.random() * 200 + 50)} reviews)`}</span>
                                             </div>
                                             <div class="flex items-center space-x-2">
                                                 <span class="font-medium text-gray-700">🕒 Hours:</span>
-                                                <span class="text-green-600">${generateMockHours()}</span>
+                                                <span class="text-green-600">${item.hours || generateMockHours()}</span>
                                             </div>
                                             <div class="flex items-center space-x-2">
                                                 <span class="font-medium text-gray-700">📞 Phone:</span>
-                                                <span class="text-blue-600">${generateMockPhone()}</span>
+                                                <span class="text-blue-600">${item.phone || generateMockPhone()}</span>
                                             </div>
                                             <div class="flex flex-wrap gap-2 mt-2">
                                                 <div class="relative">
@@ -1016,8 +1016,8 @@
                                                         <a href="#" onclick="openGoogleMaps(${item.location[0]}, ${item.location[1]})" class="block px-3 py-2 text-xs hover:bg-gray-100">🌐 Google Maps</a>
                                                     </div>
                                                 </div>
-                                                <a href="#" onclick="callBusiness('${generateMockPhone()}')" class="text-green-600 hover:underline text-xs bg-green-50 px-2 py-1 rounded">📞 Call</a>
-                                                <a href="#" onclick="viewWebsite('${item.activity}')" class="text-purple-600 hover:underline text-xs bg-purple-50 px-2 py-1 rounded">🌐 Website</a>
+                                                <a href="#" onclick="callBusiness('${item.phone || generateMockPhone()}')" class="text-green-600 hover:underline text-xs bg-green-50 px-2 py-1 rounded">📞 Call</a>
+                                                ${item.website ? `<a href="${item.website}" target="_blank" class="text-purple-600 hover:underline text-xs bg-purple-50 px-2 py-1 rounded">🌐 Website</a>` : `<a href="#" onclick="viewWebsite('${item.businessName || item.activity}')" class="text-purple-600 hover:underline text-xs bg-purple-50 px-2 py-1 rounded">🌐 Search</a>`}
                                             </div>
                                         </div>
                                     </div>
@@ -1098,8 +1098,8 @@
                 
                 console.log(`Marker ${index}: ${item.businessName || item.activity} at [${item.location[0]}, ${item.location[1]}]`);
                 
-                const businessAddress = getBusinessAddress(item.businessName);
-                const businessPhone = generateMockPhone();
+                const businessAddress = item.address || getBusinessAddress(item.businessName);
+                const businessPhone = item.phone || generateMockPhone();
                 const marker = L.marker(item.location)
                     .addTo(map)
                     .bindPopup(`
