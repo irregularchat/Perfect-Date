@@ -924,6 +924,7 @@
                 console.log(`Marker ${index}: ${item.businessName || item.activity} at [${item.location[0]}, ${item.location[1]}]`);
                 
                 const businessAddress = generateMockAddress(item.location);
+                const businessPhone = generateMockPhone();
                 const marker = L.marker(item.location)
                     .addTo(map)
                     .bindPopup(`
@@ -957,7 +958,7 @@
                                 <button onclick="openSmartMaps(${item.location[0]}, ${item.location[1]})" class="px-3 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 transition">
                                     🧭 Directions
                                 </button>
-                                <button onclick="callBusiness('${generateMockPhone()}')" class="px-3 py-1 bg-green-600 text-white rounded-md text-xs hover:bg-green-700 transition">
+                                <button onclick="callBusiness('${businessPhone}')" class="px-3 py-1 bg-green-600 text-white rounded-md text-xs hover:bg-green-700 transition">
                                     📞 Call
                                 </button>
                             </div>
