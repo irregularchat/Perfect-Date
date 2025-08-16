@@ -566,14 +566,17 @@
             const vibes = dateData.vibes || [];
             
             // Get user's coordinates or use default
-            let baseLat = 35.7796; // Default Raleigh, NC
-            let baseLng = -78.6382;
+            let baseLat = 35.0526; // Default Fayetteville, NC
+            let baseLng = -78.8783;
             
             // Try to get actual user location from map center
             if (map) {
                 const center = map.getCenter();
                 baseLat = center.lat;
                 baseLng = center.lng;
+                console.log(`Using map center coordinates: ${baseLat}, ${baseLng}`);
+            } else {
+                console.log(`Using default Fayetteville coordinates: ${baseLat}, ${baseLng}`);
             }
             
             // Different activity sets based on event type and vibes
@@ -794,12 +797,21 @@
         }
 
         function addMarkersToMap() {
+            if (!map) {
+                console.warn('Map not initialized when trying to add markers');
+                return;
+            }
+            
             // Clear existing markers
             markers.forEach(m => map.removeLayer(m));
             markers = [];
 
+            console.log(`Adding ${timeline.length} markers to map:`);
+            
             // Add new markers
             timeline.forEach((item, index) => {
+                console.log(`Marker ${index}: ${item.businessName || item.activity} at [${item.location[0]}, ${item.location[1]}]`);
+                
                 const marker = L.marker(item.location)
                     .addTo(map)
                     .bindPopup(`
@@ -810,6 +822,7 @@
                                 <div><span class="font-medium">⏰</span> ${item.time}</div>
                                 <div><span class="font-medium">💰</span> $${item.cost}</div>
                                 <div><span class="font-medium">📍</span> Step ${index + 1} of ${timeline.length}</div>
+                                <div><span class="font-medium">🌍</span> ${item.location[0].toFixed(4)}, ${item.location[1].toFixed(4)}</div>
                             </div>
                         </div>
                     `);
@@ -825,7 +838,16 @@
             // Fit map to markers
             if (markers.length > 0) {
                 const group = new L.featureGroup(markers);
-                map.fitBounds(group.getBounds().pad(0.1));
+                const bounds = group.getBounds();
+                console.log(`Fitting map to ${markers.length} markers`, bounds);
+                map.fitBounds(bounds.pad(0.1));
+                
+                // Force map refresh
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+            } else {
+                console.warn('No markers to display on map');
             }
         }
 
