@@ -462,9 +462,14 @@
 
         // Destination selection functions for long-distance dating
         function selectDestination(cityName, lat, lng) {
-            // Set the selected destination as the location for single-location mode
-            dateData.location = cityName;
-            dateData.date_location = null; // Clear two-location mode
+            // Keep original locations and add the selected destination
+            // Don't clear the original two-location data
+            dateData.selected_destination = cityName;
+            dateData.destination_coordinates = [lat, lng];
+            
+            // DON'T clear date_location - keep it for context
+            // The API should use selected_destination as the search location while
+            // maintaining the original two-location context for display
             
             // Clear any form inputs that might interfere
             const dateLocationInput = document.getElementById('quickDateLocation');
@@ -516,15 +521,11 @@
             }
             
             // Show confirmation and generate date
-            const confirmation = confirm(`Generate date ideas for ${cityName}? This will create a romantic getaway itinerary for both of you to enjoy together.`);
+            const originalLoc1 = dateData.location || 'Location 1';
+            const originalLoc2 = dateData.date_location || 'Location 2';
+            const confirmation = confirm(`Meet in ${cityName}?\n\nThis will create date ideas in ${cityName} as the perfect meeting destination for:\n• ${originalLoc1}\n• ${originalLoc2}\n\nGenerate romantic getaway itinerary?`);
             if (confirmation) {
-                console.log('Generating date for destination:', cityName, 'with data:', dateData);
-                
-                // Double-check that location is properly set
-                if (!dateData.location || dateData.location !== cityName) {
-                    console.warn('Location mismatch, fixing:', dateData.location, 'should be', cityName);
-                    dateData.location = cityName;
-                }
+                console.log('Selected destination:', cityName, 'for meeting between:', originalLoc1, 'and', originalLoc2);
                 
                 // Clear the results section first to show we're generating new content
                 const resultsDiv = document.getElementById('results');
@@ -558,6 +559,42 @@
             document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
             
             alert('Switched to single-location mode. Choose one location for your date.');
+        }
+
+        // Add explanation for destination dating mode
+        function addDestinationExplanation(destination, location1, location2) {
+            const explanationDiv = document.getElementById('twoLocationExplanation');
+            const contentDiv = document.getElementById('explanationContent');
+            
+            if (!explanationDiv || !contentDiv) return;
+            
+            contentDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="text-lg font-bold text-blue-900 mb-3">✈️ Destination Meeting Point</div>
+                    <div class="bg-white/50 rounded-lg p-4 mb-4">
+                        <div class="grid md:grid-cols-3 gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="font-medium text-blue-900">📍 Your Location</div>
+                                <div class="text-blue-700">${location1}</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-medium text-green-900">🎯 Meeting Destination</div>
+                                <div class="text-green-700 font-bold">${destination}</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-medium text-blue-900">📍 Date's Location</div>
+                                <div class="text-blue-700">${location2}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-blue-700">
+                        ✨ Perfect romantic getaway destination chosen for both of you! All venues and activities below are located in <strong>${destination}</strong>, making it an ideal meeting point for your long-distance date.
+                    </div>
+                </div>
+            `;
+            
+            // Show the explanation panel
+            explanationDiv.classList.remove('hidden');
         }
 
         // Add explanation for two-location optimization
@@ -1080,13 +1117,27 @@
             
             try {
                 // Prepare API request data
+                let searchLocation = dateData.location || `${baseLat}, ${baseLng}`;
+                let searchDateLocation = dateData.date_location || null;
+                
+                // If a destination was selected from long-distance suggestions, use it as single location
+                if (dateData.selected_destination) {
+                    searchLocation = dateData.selected_destination;
+                    searchDateLocation = null; // Override to single-location mode
+                    console.log(`Using selected destination: ${dateData.selected_destination} instead of original locations`);
+                }
+                
                 const requestData = {
-                    location: dateData.location || `${baseLat}, ${baseLng}`,
-                    date_location: dateData.date_location || null,
+                    location: searchLocation,
+                    date_location: searchDateLocation,
                     budget: budget,
                     event_type: eventType,
                     vibes: vibes,
-                    time_available: hours
+                    time_available: hours,
+                    // Include context for display purposes
+                    original_location: dateData.location,
+                    original_date_location: dateData.date_location,
+                    selected_destination: dateData.selected_destination || null
                 };
                 
                 console.log('API Request Data:', requestData);
@@ -1216,8 +1267,11 @@
                             fairness_score: activity.fairness_score
                         }));
                         
-                        // Add explanation for two-location optimization
-                        if (result.two_location_mode) {
+                        // Add explanation for different scenarios
+                        if (dateData.selected_destination) {
+                            // This is a destination date from long-distance suggestion
+                            addDestinationExplanation(dateData.selected_destination, dateData.location, dateData.date_location);
+                        } else if (result.two_location_mode) {
                             addTwoLocationExplanation(result);
                         } else if (dateData.date_location && dateData.date_location !== dateData.location) {
                             // This was a two-location request that succeeded (reasonable distance)
