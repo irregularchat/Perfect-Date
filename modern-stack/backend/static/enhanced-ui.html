@@ -167,6 +167,25 @@
                                 </button>
                             </div>
                         </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date's Location (Optional)</label>
+                            <div class="space-y-3">
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="sameLocationCheck" checked onchange="toggleDateLocation()" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                    <label for="sameLocationCheck" class="text-sm text-gray-600">Same as my location</label>
+                                </div>
+                                <div id="dateLocationContainer" class="hidden">
+                                    <div class="flex space-x-2">
+                                        <input type="text" id="dateLocationInput" placeholder="Enter your date's city or address" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                        <button onclick="copyMyLocation()" class="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                                            📋 Copy Mine
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">We'll find venues that minimize travel for both of you</p>
+                                </div>
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Preferences</label>
                             <textarea id="preferences" placeholder="What do you like? Any special requests?" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" rows="3"></textarea>
@@ -202,10 +221,27 @@
             <form id="dateForm" class="space-y-4">
                 <!-- Location with geolocation button -->
                 <div class="flex space-x-2">
-                    <input type="text" id="quickLocation" placeholder="Location" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="quickLocation" placeholder="Your location" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                     <button type="button" onclick="getQuickLocation()" id="quickLocationBtn" class="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                         📍 Use My Location
                     </button>
+                </div>
+                
+                <!-- Date's Location (Optional) -->
+                <div class="space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="quickSameLocationCheck" checked onchange="toggleQuickDateLocation()" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="quickSameLocationCheck" class="text-sm text-gray-600">Same as my location</label>
+                    </div>
+                    <div id="quickDateLocationContainer" class="hidden">
+                        <div class="flex space-x-2">
+                            <input type="text" id="quickDateLocation" placeholder="Your date's location" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <button type="button" onclick="copyQuickLocation()" class="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                                📋 Copy Mine
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Find venues that minimize travel for both</p>
+                    </div>
                 </div>
                 
                 <!-- Budget and other options -->
@@ -626,6 +662,39 @@
             }
         }
 
+        // Two-location toggle functions
+        function toggleDateLocation() {
+            const checkbox = document.getElementById('sameLocationCheck');
+            const container = document.getElementById('dateLocationContainer');
+            
+            if (checkbox.checked) {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+            }
+        }
+
+        function toggleQuickDateLocation() {
+            const checkbox = document.getElementById('quickSameLocationCheck');
+            const container = document.getElementById('quickDateLocationContainer');
+            
+            if (checkbox.checked) {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+            }
+        }
+
+        function copyMyLocation() {
+            const myLocation = document.getElementById('locationInput').value;
+            document.getElementById('dateLocationInput').value = myLocation;
+        }
+
+        function copyQuickLocation() {
+            const myLocation = document.getElementById('quickLocation').value;
+            document.getElementById('quickDateLocation').value = myLocation;
+        }
+
         // Geolocation for classic form
         function getQuickLocation() {
             const btn = document.getElementById('quickLocationBtn');
@@ -711,6 +780,16 @@
             if (document.getElementById('locationInput')) {
                 dateData.location = document.getElementById('locationInput').value;
             }
+            
+            // Collect date location from wizard
+            const sameLocationCheck = document.getElementById('sameLocationCheck');
+            if (sameLocationCheck && !sameLocationCheck.checked) {
+                const dateLocationValue = document.getElementById('dateLocationInput').value;
+                if (dateLocationValue && dateLocationValue.trim()) {
+                    dateData.date_location = dateLocationValue.trim();
+                }
+            }
+            
             if (document.getElementById('preferences')) {
                 dateData.preferences = document.getElementById('preferences').value;
             }
@@ -719,6 +798,15 @@
             if (formMode === 'classic') {
                 dateData.location = document.getElementById('quickLocation').value || 'Virginia Beach';
                 dateData.budget = parseInt(document.getElementById('quickBudget').value) || 100;
+                
+                // Collect date location from classic form
+                const quickSameLocationCheck = document.getElementById('quickSameLocationCheck');
+                if (quickSameLocationCheck && !quickSameLocationCheck.checked) {
+                    const quickDateLocationValue = document.getElementById('quickDateLocation').value;
+                    if (quickDateLocationValue && quickDateLocationValue.trim()) {
+                        dateData.date_location = quickDateLocationValue.trim();
+                    }
+                }
             }
 
             // Show loading state
@@ -843,7 +931,8 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        location: `${baseLat}, ${baseLng}`,
+                        location: dateData.location || `${baseLat}, ${baseLng}`,
+                        date_location: dateData.date_location || null,
                         budget: budget,
                         event_type: eventType,
                         vibes: vibes,
