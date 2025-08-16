@@ -565,34 +565,45 @@
             const hours = dateData.timeAvailable || 4;
             const vibes = dateData.vibes || [];
             
+            // Get user's coordinates or use default
+            let baseLat = 35.7796; // Default Raleigh, NC
+            let baseLng = -78.6382;
+            
+            // Try to get actual user location from map center
+            if (map) {
+                const center = map.getCenter();
+                baseLat = center.lat;
+                baseLng = center.lng;
+            }
+            
             // Different activity sets based on event type and vibes
             const activitySets = {
                 'first_date': [
-                    { time: '6:00 PM', activity: 'Coffee at Cozy Cafe', cost: 15, location: [36.8529, -75.9780] },
-                    { time: '7:00 PM', activity: 'Mini Golf & Ice Cream', cost: 25, location: [36.8509, -75.9760] },
-                    { time: '8:30 PM', activity: 'Sunset Beach Walk', cost: 0, location: [36.8489, -75.9740] }
+                    { time: '6:00 PM', activity: 'Coffee at Cozy Cafe', cost: 15, location: [baseLat, baseLng] },
+                    { time: '7:00 PM', activity: 'Mini Golf & Ice Cream', cost: 25, location: [baseLat + 0.002, baseLng + 0.002] },
+                    { time: '8:30 PM', activity: 'Sunset Walk', cost: 0, location: [baseLat + 0.004, baseLng + 0.004] }
                 ],
                 'casual_dating': [
-                    { time: '2:00 PM', activity: 'Lunch at Local Bistro', cost: 40, location: [36.8529, -75.9780] },
-                    { time: '3:30 PM', activity: 'Arcade & Games', cost: 20, location: [36.8509, -75.9760] },
-                    { time: '5:00 PM', activity: 'Happy Hour Drinks', cost: 30, location: [36.8489, -75.9740] },
-                    { time: '6:30 PM', activity: 'Live Music Venue', cost: 25, location: [36.8469, -75.9720] }
+                    { time: '2:00 PM', activity: 'Lunch at Local Bistro', cost: 40, location: [baseLat, baseLng] },
+                    { time: '3:30 PM', activity: 'Arcade & Games', cost: 20, location: [baseLat + 0.003, baseLng + 0.003] },
+                    { time: '5:00 PM', activity: 'Happy Hour Drinks', cost: 30, location: [baseLat + 0.005, baseLng + 0.005] },
+                    { time: '6:30 PM', activity: 'Live Music Venue', cost: 25, location: [baseLat + 0.007, baseLng + 0.007] }
                 ],
                 'married_date': [
-                    { time: '5:00 PM', activity: 'Couples Spa Treatment', cost: 150, location: [36.8529, -75.9780] },
-                    { time: '7:00 PM', activity: 'Fine Dining Experience', cost: 120, location: [36.8509, -75.9760] },
-                    { time: '9:00 PM', activity: 'Rooftop Bar & Dancing', cost: 40, location: [36.8489, -75.9740] }
+                    { time: '5:00 PM', activity: 'Couples Spa Treatment', cost: 150, location: [baseLat, baseLng] },
+                    { time: '7:00 PM', activity: 'Fine Dining Experience', cost: 120, location: [baseLat + 0.004, baseLng + 0.004] },
+                    { time: '9:00 PM', activity: 'Rooftop Bar & Dancing', cost: 40, location: [baseLat + 0.006, baseLng + 0.006] }
                 ],
                 'friends_night': [
-                    { time: '6:00 PM', activity: 'Bowling & Appetizers', cost: 35, location: [36.8529, -75.9780] },
-                    { time: '8:00 PM', activity: 'Trivia Night at Pub', cost: 25, location: [36.8509, -75.9760] },
-                    { time: '10:00 PM', activity: 'Karaoke Bar', cost: 20, location: [36.8489, -75.9740] }
+                    { time: '6:00 PM', activity: 'Bowling & Appetizers', cost: 35, location: [baseLat, baseLng] },
+                    { time: '8:00 PM', activity: 'Trivia Night at Pub', cost: 25, location: [baseLat + 0.003, baseLng + 0.003] },
+                    { time: '10:00 PM', activity: 'Karaoke Bar', cost: 20, location: [baseLat + 0.005, baseLng + 0.005] }
                 ],
                 'family_outing': [
-                    { time: '11:00 AM', activity: 'Science Museum', cost: 60, location: [36.8529, -75.9780] },
-                    { time: '1:00 PM', activity: 'Family Restaurant', cost: 80, location: [36.8509, -75.9760] },
-                    { time: '3:00 PM', activity: 'Park & Playground', cost: 0, location: [36.8489, -75.9740] },
-                    { time: '5:00 PM', activity: 'Ice Cream Shop', cost: 20, location: [36.8469, -75.9720] }
+                    { time: '11:00 AM', activity: 'Science Museum', cost: 60, location: [baseLat, baseLng] },
+                    { time: '1:00 PM', activity: 'Family Restaurant', cost: 80, location: [baseLat + 0.002, baseLng + 0.002] },
+                    { time: '3:00 PM', activity: 'Park & Playground', cost: 0, location: [baseLat + 0.004, baseLng + 0.004] },
+                    { time: '5:00 PM', activity: 'Ice Cream Shop', cost: 20, location: [baseLat + 0.006, baseLng + 0.006] }
                 ]
             };
 
@@ -608,7 +619,7 @@
                     time: '9:00 PM', 
                     activity: '🎯 Escape Room Challenge', 
                     cost: 35, 
-                    location: [36.8449, -75.9700] 
+                    location: [baseLat + 0.008, baseLng + 0.008] 
                 });
             }
             if (vibes.includes('cultural')) {
@@ -637,13 +648,42 @@
             addMarkersToMap();
         }
 
-        // Initialize interactive map
+        // Initialize interactive map with user's location
         function initMap() {
             if (!map) {
-                map = L.map('map').setView([36.8529, -75.9780], 13); // Default to Virginia Beach
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
+                // Try to get user's actual location
+                if (navigator.geolocation && !map) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const userLat = position.coords.latitude;
+                            const userLng = position.coords.longitude;
+                            map = L.map('map').setView([userLat, userLng], 13);
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                attribution: '© OpenStreetMap contributors'
+                            }).addTo(map);
+                            
+                            // Add marker for user location
+                            L.marker([userLat, userLng])
+                                .addTo(map)
+                                .bindPopup('📍 Your Location')
+                                .openPopup();
+                        },
+                        (error) => {
+                            // Fallback to default location
+                            console.log('Geolocation failed, using default');
+                            map = L.map('map').setView([35.7796, -78.6382], 13); // Default to Raleigh, NC
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                attribution: '© OpenStreetMap contributors'
+                            }).addTo(map);
+                        }
+                    );
+                } else {
+                    // Fallback if geolocation not available
+                    map = L.map('map').setView([35.7796, -78.6382], 13); // Default to Raleigh, NC
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+                }
             }
         }
 
