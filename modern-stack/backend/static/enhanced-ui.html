@@ -758,11 +758,11 @@
                 document.getElementById('budgetDisplay').classList.remove('hidden');
                 
                 // Initialize map with delay to ensure DOM is ready
-                setTimeout(() => {
+                setTimeout(async () => {
                     initMap();
                     
                     // Create dynamic timeline based on input  
-                    createDynamicTimeline();
+                    await createDynamicTimeline();
                     
                     // Ensure markers are added with multiple attempts
                     setTimeout(() => {
@@ -782,7 +782,7 @@
         }
 
         // Create dynamic timeline based on user input
-        function createDynamicTimeline() {
+        async function createDynamicTimeline() {
             const eventType = dateData.eventType || 'casual_dating';
             const budget = dateData.budget || 100;
             const hours = dateData.timeAvailable || 4;
@@ -801,6 +801,52 @@
             } else {
                 console.log(`Using default Fayetteville coordinates: ${baseLat}, ${baseLng}`);
             }
+            
+            try {
+                // Call backend API to generate real places
+                const response = await fetch('/api/generate-date', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        location: `${baseLat}, ${baseLng}`,
+                        budget: budget,
+                        event_type: eventType,
+                        vibes: vibes,
+                        time_available: hours
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.activities) {
+                        // Transform backend activities to frontend format
+                        timeline = result.activities.map((activity, index) => ({
+                            time: activity.time,
+                            activity: activity.activity,
+                            businessName: activity.place_name || activity.activity,
+                            cost: activity.estimated_cost || 50,
+                            location: [activity.location.lat, activity.location.lng],
+                            address: activity.address,
+                            rating: activity.rating,
+                            phone: activity.phone,
+                            website: activity.website,
+                            hours: activity.open_now ? 'Open Now' : 'Check Hours'
+                        }));
+                        
+                        console.log('Generated timeline with real Google Places:', timeline);
+                        renderTimeline();
+                        addMarkersToMap();
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to get real places from API:', error);
+            }
+
+            // Fallback to mock data if API fails
+            console.log('Using fallback mock data');
             
             // Different activity sets based on event type and vibes
             const activitySets = {
@@ -1118,7 +1164,7 @@
             }
         }
 
-        function swapVenue(index) {
+        async function swapVenue(index) {
             const currentActivity = timeline[index];
             
             // Show loading state
@@ -1130,49 +1176,120 @@
             `;
             document.getElementById('alternatives').scrollIntoView({ behavior: 'smooth' });
             
-            // Simulate loading delay for better UX
+            // Get current location
+            let searchLocation = "Fayetteville, NC";
+            if (map) {
+                const center = map.getCenter();
+                searchLocation = `${center.lat}, ${center.lng}`;
+            }
+            
+            try {
+                // Call backend API to search for real alternative venues
+                const activityQuery = getSearchQuery(currentActivity.activity);
+                const response = await fetch(`/api/search-places?query=${encodeURIComponent(activityQuery)}&location=${encodeURIComponent(searchLocation)}&radius=5000`);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.places && result.places.length > 0) {
+                        // Use real Google Places data
+                        const alternatives = result.places.map(place => ({
+                            name: place.name,
+                            rating: place.rating ? `${place.rating}/5` : 'No rating',
+                            priceLevel: getPriceLevel(place.price_level),
+                            distance: '0.5 mi', // Could calculate actual distance
+                            address: place.address || 'Address not available',
+                            phone: place.phone || '(910) 555-0123',
+                            hours: 'Check hours online',
+                            description: `Highly rated ${activityQuery.toLowerCase()} venue with great reviews`,
+                            location: place.location,
+                            place_id: place.place_id
+                        }));
+                        
+                        displayAlternatives(index, currentActivity, alternatives);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to get real alternative venues:', error);
+            }
+
+            // Fallback to mock alternatives
+            console.log('Using fallback mock alternatives');
             setTimeout(() => {
-                // Generate alternative venues with full business details
                 const alternatives = generateAlternativeVenues(currentActivity.activity);
-                
-                const altHtml = alternatives.map((alt, altIndex) => `
-                    <div class="venue-card p-5 bg-white rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition-all border-2 border-transparent hover:border-indigo-200 transform hover:-translate-y-1" onclick="replaceVenue(${index}, ${altIndex})">
-                        <div class="space-y-3">
-                            <div class="flex items-start justify-between">
-                                <div class="font-bold text-lg text-gray-900">${alt.name}</div>
-                                <div class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Available</div>
-                            </div>
-                            <div class="flex items-center space-x-4 text-sm">
-                                <span class="text-yellow-600 font-medium">⭐ ${alt.rating}</span>
-                                <span class="text-gray-600">${alt.priceLevel}</span>
-                                <span class="text-blue-600">${alt.distance}</span>
-                            </div>
-                            <div class="text-sm text-gray-600 leading-relaxed">${alt.address}</div>
-                            <div class="text-sm flex items-center space-x-2">
-                                <span class="font-medium">📞</span> 
-                                <span class="text-blue-600">${alt.phone}</span>
-                            </div>
-                            <div class="text-xs text-green-600 font-medium">${alt.hours}</div>
-                            <div class="text-sm text-gray-700 leading-relaxed">${alt.description}</div>
-                            <div class="pt-2 border-t border-gray-100">
-                                <button class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
-                                    🏠 Select This Venue →
-                                </button>
-                            </div>
+                displayAlternatives(index, currentActivity, alternatives);
+            }, 800);
+        }
+
+        function getSearchQuery(activity) {
+            // Convert activity description to search query
+            if (activity.toLowerCase().includes('coffee') || activity.toLowerCase().includes('cafe')) {
+                return 'coffee shop';
+            } else if (activity.toLowerCase().includes('lunch') || activity.toLowerCase().includes('dinner') || activity.toLowerCase().includes('food')) {
+                return 'restaurant';
+            } else if (activity.toLowerCase().includes('drinks') || activity.toLowerCase().includes('bar')) {
+                return 'bar';
+            } else if (activity.toLowerCase().includes('arcade') || activity.toLowerCase().includes('games')) {
+                return 'arcade';
+            } else if (activity.toLowerCase().includes('bowling')) {
+                return 'bowling alley';
+            } else if (activity.toLowerCase().includes('spa')) {
+                return 'spa';
+            } else if (activity.toLowerCase().includes('entertainment')) {
+                return 'entertainment venue';
+            } else {
+                return activity.toLowerCase();
+            }
+        }
+
+        function getPriceLevel(priceLevel) {
+            switch(priceLevel) {
+                case 1: return '$';
+                case 2: return '$$';
+                case 3: return '$$$';
+                case 4: return '$$$$';
+                default: return '$$';
+            }
+        }
+
+        function displayAlternatives(index, currentActivity, alternatives) {
+            const altHtml = alternatives.map((alt, altIndex) => `
+                <div class="venue-card p-5 bg-white rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition-all border-2 border-transparent hover:border-indigo-200 transform hover:-translate-y-1" onclick="replaceVenue(${index}, ${altIndex})">
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div class="font-bold text-lg text-gray-900">${alt.name}</div>
+                            <div class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Available</div>
+                        </div>
+                        <div class="flex items-center space-x-4 text-sm">
+                            <span class="text-yellow-600 font-medium">⭐ ${alt.rating}</span>
+                            <span class="text-gray-600">${alt.priceLevel}</span>
+                            <span class="text-blue-600">${alt.distance}</span>
+                        </div>
+                        <div class="text-sm text-gray-600 leading-relaxed">${alt.address}</div>
+                        <div class="text-sm flex items-center space-x-2">
+                            <span class="font-medium">📞</span> 
+                            <span class="text-blue-600">${alt.phone}</span>
+                        </div>
+                        <div class="text-xs text-green-600 font-medium">${alt.hours}</div>
+                        <div class="text-sm text-gray-700 leading-relaxed">${alt.description}</div>
+                        <div class="pt-2 border-t border-gray-100">
+                            <button class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+                                🏠 Select This Venue →
+                            </button>
                         </div>
                     </div>
-                `).join('');
-                
-                document.getElementById('alternatives').innerHTML = `
-                    <div class="mb-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl">
-                        <h4 class="font-bold text-xl text-gray-900 mb-2">✨ Alternative venues for "${currentActivity.businessName || currentActivity.activity}"</h4>
-                        <p class="text-gray-600">Found ${alternatives.length} great options nearby. Click any venue to replace it in your timeline!</p>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        ${altHtml}
-                    </div>
-                `;
-            }, 800);
+                </div>
+            `).join('');
+            
+            document.getElementById('alternatives').innerHTML = `
+                <div class="mb-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl">
+                    <h4 class="font-bold text-xl text-gray-900 mb-2">✨ Alternative venues for "${currentActivity.businessName || currentActivity.activity}"</h4>
+                    <p class="text-gray-600">Found ${alternatives.length} great options nearby. Click any venue to replace it in your timeline!</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    ${altHtml}
+                </div>
+            `;
         }
 
         function generateAlternativeVenues(currentActivity) {
