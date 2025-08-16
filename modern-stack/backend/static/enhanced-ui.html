@@ -578,32 +578,37 @@
                         btn.innerHTML = originalText;
                         btn.disabled = false;
                         
-                        let errorMessage = 'Location access failed. ';
-                        let useDefault = false;
-                        
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage += 'Permission denied. Please allow location access in browser settings.';
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage += 'Location unavailable. Using Fayetteville, NC as default.';
-                                useDefault = true;
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage += 'Location request timed out. Try again or enter manually.';
-                                break;
-                            default:
-                                errorMessage += 'Unknown error. Using Fayetteville, NC as default.';
-                                useDefault = true;
-                        }
-                        
-                        // If location unavailable, use default location
-                        if (useDefault) {
+                        // Try IP-based geolocation as fallback
+                        if (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT) {
+                            console.log('Trying IP-based geolocation as fallback...');
+                            fetch('https://ipapi.co/json/')
+                                .then(r => r.json())
+                                .then(data => {
+                                    if (data.city && data.region) {
+                                        const location = `${data.city}, ${data.region}`;
+                                        document.getElementById('locationInput').value = location;
+                                        dateData.location = location;
+                                        console.log(`IP geolocation successful: ${location}`);
+                                        alert(`Location detected from IP: ${location}\n\nYou can change it manually if needed.`);
+                                    } else {
+                                        // Fallback to default
+                                        document.getElementById('locationInput').value = 'Fayetteville, NC';
+                                        dateData.location = 'Fayetteville, NC';
+                                        alert('Location unavailable. Using Fayetteville, NC as default.\n\nYou can change it manually.');
+                                    }
+                                })
+                                .catch(() => {
+                                    // Fallback to default
+                                    document.getElementById('locationInput').value = 'Fayetteville, NC';
+                                    dateData.location = 'Fayetteville, NC';
+                                    alert('Location unavailable. Using Fayetteville, NC as default.\n\nYou can change it manually.');
+                                });
+                        } else if (error.code === error.PERMISSION_DENIED) {
+                            alert('Location permission denied.\n\nTo enable:\n• Safari: Settings > Privacy & Security > Location Services\n• Chrome: Settings > Privacy > Site Settings > Location\n• Firefox: Settings > Privacy > Permissions > Location');
+                        } else {
                             document.getElementById('locationInput').value = 'Fayetteville, NC';
                             dateData.location = 'Fayetteville, NC';
-                            alert(errorMessage + '\n\nDefault location set to Fayetteville, NC. You can change it manually.');
-                        } else {
-                            alert(errorMessage);
+                            alert('Location error. Using Fayetteville, NC as default.\n\nYou can change it manually.');
                         }
                     },
                     {
@@ -657,31 +662,33 @@
                         btn.innerHTML = '📍 Use My Location';
                         btn.disabled = false;
                         
-                        let errorMessage = 'Location access failed. ';
-                        let useDefault = false;
-                        
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage += 'Permission denied. Please allow location access in your browser settings.';
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage += 'Location unavailable. Using Fayetteville, NC as default.';
-                                useDefault = true;
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage += 'Location request timed out. Try again or enter manually.';
-                                break;
-                            default:
-                                errorMessage += 'Unknown error. Using Fayetteville, NC as default.';
-                                useDefault = true;
-                        }
-                        
-                        // If location unavailable, use default location
-                        if (useDefault) {
-                            document.getElementById('quickLocation').value = 'Fayetteville, NC';
-                            alert(errorMessage + '\n\nDefault location set to Fayetteville, NC. You can change it manually.');
+                        // Try IP-based geolocation as fallback
+                        if (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT) {
+                            console.log('Trying IP-based geolocation as fallback...');
+                            fetch('https://ipapi.co/json/')
+                                .then(r => r.json())
+                                .then(data => {
+                                    if (data.city && data.region) {
+                                        const location = `${data.city}, ${data.region}`;
+                                        document.getElementById('quickLocation').value = location;
+                                        console.log(`IP geolocation successful: ${location}`);
+                                        alert(`Location detected from IP: ${location}\n\nYou can change it manually if needed.`);
+                                    } else {
+                                        // Fallback to default
+                                        document.getElementById('quickLocation').value = 'Fayetteville, NC';
+                                        alert('Location unavailable. Using Fayetteville, NC as default.\n\nYou can change it manually.');
+                                    }
+                                })
+                                .catch(() => {
+                                    // Fallback to default
+                                    document.getElementById('quickLocation').value = 'Fayetteville, NC';
+                                    alert('Location unavailable. Using Fayetteville, NC as default.\n\nYou can change it manually.');
+                                });
+                        } else if (error.code === error.PERMISSION_DENIED) {
+                            alert('Location permission denied.\n\nTo enable:\n• Safari: Settings > Privacy & Security > Location Services\n• Chrome: Settings > Privacy > Site Settings > Location\n• Firefox: Settings > Privacy > Permissions > Location');
                         } else {
-                            alert(errorMessage);
+                            document.getElementById('quickLocation').value = 'Fayetteville, NC';
+                            alert('Location error. Using Fayetteville, NC as default.\n\nYou can change it manually.');
                         }
                     },
                     {
