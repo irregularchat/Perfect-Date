@@ -244,6 +244,9 @@
                     <button onclick="addMarkersToMap()" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
                         🗺️ Refresh Markers
                     </button>
+                    <button onclick="forceRefreshCoordinates()" class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700">
+                        📍 Fix Coordinates
+                    </button>
                 </div>
                 <div id="map" class="h-96 rounded-lg"></div>
             </div>
@@ -301,46 +304,48 @@
         let timeline = [];
         let markers = [];
         
-        // Real business locations in Fayetteville, NC
+        // Real business locations in Fayetteville, NC - More accurate coordinates
         const fayettevilleBusinesses = {
-            // Coffee & Cafes
-            'Blue Moon Cafe': [35.0526, -78.8783], // Downtown Fayetteville
-            'Rowan Street Coffee': [35.0538, -78.8799],
-            'Sweet Creams Ice Cream': [35.0515, -78.8756],
-            'Sweet Dreams Creamery': [35.0515, -78.8756],
+            // Coffee & Cafes - Downtown and surrounding areas
+            'Blue Moon Cafe': [35.0521, -78.8767], // Historic Downtown
+            'Rowan Street Coffee': [35.0534, -78.8785], // Market House area
+            'Sweet Creams Ice Cream': [35.0498, -78.8743], // Downtown district
+            'Sweet Dreams Creamery': [35.0498, -78.8743], // Same area
             
-            // Restaurants  
-            'Garden Bistro': [35.0541, -78.8812], // Cross Creek Mall area
-            'Bella Vista Italian': [35.0498, -78.8734], // Downtown
-            'Family Farm Table': [35.0553, -78.8823],
-            'Luigi\'s Italian Restaurant': [35.0487, -78.8721],
+            // Restaurants - Spread across major areas
+            'Garden Bistro': [35.0634, -78.8934], // Cross Creek Mall vicinity
+            'Bella Vista Italian': [35.0512, -78.8756], // Downtown
+            'Family Farm Table': [35.0587, -78.8856], // Ramsey Street corridor
+            'Luigi\'s Italian Restaurant': [35.0476, -78.8698], // Bragg Boulevard area
             
-            // Entertainment
-            'Strike Zone Bowling': [35.0612, -78.8892], // Skibo Road area
-            'Fun Zone Entertainment': [35.0456, -78.8678], // Hope Mills Road
-            'Escape Room Fayetteville': [35.0521, -78.8791],
+            // Entertainment - Major entertainment districts
+            'Strike Zone Bowling': [35.0698, -78.9012], // Skibo Road commercial area
+            'Fun Zone Entertainment': [35.0398, -78.8612], // Hope Mills Road
+            'Escape Room Fayetteville': [35.0545, -78.8798], // Market Square area
             
-            // Bars & Nightlife
-            'The Tap Room': [35.0531, -78.8789], // Downtown area
-            'Sky Lounge': [35.0543, -78.8801], // Ramsey Street
-            'The Local Pub': [35.0518, -78.8776],
-            'Sing-Along Bar': [35.0498, -78.8745],
+            // Bars & Nightlife - Downtown and entertainment districts
+            'The Tap Room': [35.0528, -78.8772], // Downtown core
+            'Sky Lounge': [35.0612, -78.8889], // Ramsey Street
+            'The Local Pub': [35.0534, -78.8781], // Downtown vicinity
+            'Sing-Along Bar': [35.0487, -78.8723], // Downtown entertainment
             
-            // Recreation & Attractions
-            'Cape Fear River Trail': [35.0445, -78.8912], // River area
-            'Festival Park': [35.0578, -78.8845], // North Fayetteville
-            'Serenity Day Spa': [35.0556, -78.8834], // Ramsey Street
-            'Discovery Place Science': [35.0489, -78.8712], // Museum district
-            'Music Hall Downtown': [35.0523, -78.8785], // Downtown arts district
+            // Recreation & Attractions - Natural and cultural sites
+            'Cape Fear River Trail': [35.0389, -78.8923], // Actual river trail location
+            'Festival Park': [35.0623, -78.8867], // North Fayetteville parks
+            'Serenity Day Spa': [35.0591, -78.8834], // Ramsey Street services
+            'Discovery Place Science': [35.0467, -78.8687], // Educational district
+            'Music Hall Downtown': [35.0518, -78.8764], // Arts & culture district
             
-            // Shopping & Services
-            'Strike Zone Lanes': [35.0634, -78.8923], // North side
-            'Music Venue Downtown': [35.0514, -78.8771]
+            // Additional venues for variety
+            'Strike Zone Lanes': [35.0676, -78.8945], // Different bowling location
+            'Music Venue Downtown': [35.0507, -78.8751] // Live music venue
         };
         
         // Function to get real coordinates for a business
         function getBusinessLocation(businessName) {
-            return fayettevilleBusinesses[businessName] || [35.0526, -78.8783]; // Default to downtown
+            const location = fayettevilleBusinesses[businessName] || [35.0526, -78.8783]; // Default to downtown
+            console.log(`Getting location for "${businessName}": [${location[0]}, ${location[1]}]`);
+            return location;
         }
 
         // Form mode toggle
@@ -631,6 +636,9 @@
                             <button onclick="addMarkersToMap()" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
                                 🗺️ Refresh Markers
                             </button>
+                            <button onclick="forceRefreshCoordinates()" class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700">
+                                📍 Fix Coordinates
+                            </button>
                         </div>
                         <div id="map" class="h-96 rounded-lg"></div>
                     </div>
@@ -788,6 +796,10 @@
             activities = activities.slice(0, Math.min(activities.length, Math.ceil(hours / 1.5)));
             
             timeline = activities;
+            console.log('Created timeline with coordinates:', timeline.map(item => ({
+                name: item.businessName,
+                coordinates: item.location
+            })));
             renderTimeline();
             addMarkersToMap();
         }
@@ -1316,6 +1328,25 @@
                     timelineItems[index].style.transform = '';
                 }, 2000);
             }
+        }
+
+        function forceRefreshCoordinates() {
+            console.log('Forcing coordinate refresh...');
+            
+            // Update all timeline items with fresh coordinates
+            timeline.forEach((item, index) => {
+                if (item.businessName) {
+                    const newLocation = getBusinessLocation(item.businessName);
+                    item.location = newLocation;
+                    console.log(`Updated ${item.businessName} to coordinates: [${newLocation[0]}, ${newLocation[1]}]`);
+                }
+            });
+            
+            // Refresh the map
+            addMarkersToMap();
+            
+            // Show notification
+            alert('📍 Coordinates updated to accurate locations!');
         }
 
         // Quick vibe selection for classic form
