@@ -185,7 +185,7 @@ def calculate_midpoint_and_radius(location1: tuple, location2: tuple) -> tuple:
     
     return midpoint, int(radius)
 
-def find_destination_cities(location1: tuple, location2: tuple, num_suggestions: int = 3) -> List[dict]:
+def find_destination_cities(location1: tuple, location2: tuple, num_suggestions: int = 5) -> List[dict]:
     """
     Find major cities/airports that make good meeting destinations for long-distance dating
     
@@ -225,19 +225,26 @@ def find_destination_cities(location1: tuple, location2: tuple, num_suggestions:
         
         # Bonus for major airline hubs for international travel
         hub_bonus = 0
-        if "UK" in city_name or "Iceland" in city_name or "AK" in city_name or "Dubai" in city_name:
-            hub_bonus = 10
+        if any(hub in city_name for hub in ["London", "Paris", "Amsterdam", "Frankfurt", "Reykjavik", 
+                                             "Dubai", "Singapore", "Hong Kong", "Tokyo", "Chicago", 
+                                             "Atlanta", "Denver", "Dallas"]):
+            hub_bonus = 15
+        
+        # Extra bonus for cities that are particularly good for NYC-London
+        if total_distance > 5000:  # Trans-Atlantic distance
+            if "Reykjavik" in city_name:  # Perfect midpoint for NYC-London
+                hub_bonus += 25
+            elif any(city in city_name for city in ["London", "Dublin", "Edinburgh", "Paris", "Amsterdam"]):
+                hub_bonus += 10
         
         destination_scores.append({
-            "city": city_name,
-            "coordinates": city_coords,
-            "distance_person1_km": dist1,
-            "distance_person1_mi": dist1 * 0.621371,
-            "distance_person2_km": dist2,
-            "distance_person2_mi": dist2 * 0.621371,
+            "name": city_name,
+            "lat": city_coords[0],
+            "lng": city_coords[1],
+            "distance_person1": dist1,
+            "distance_person2": dist2,
+            "total_distance": total_travel,
             "fairness_score": fairness_score,
-            "total_travel_km": total_travel,
-            "total_travel_mi": total_travel * 0.621371,
             "score": combined_score + hub_bonus,
             "is_hub": hub_bonus > 0
         })
@@ -415,58 +422,7 @@ def calculate_midpoint_and_radius(location1: tuple, location2: tuple) -> tuple:
     
     return midpoint, int(radius), distance_km
 
-# Destination cities for long-distance dating
-DESTINATION_CITIES = [
-    {"name": "New York, NY", "lat": 40.7128, "lng": -74.0060},
-    {"name": "Los Angeles, CA", "lat": 34.0522, "lng": -118.2437},
-    {"name": "Chicago, IL", "lat": 41.8781, "lng": -87.6298},
-    {"name": "Miami, FL", "lat": 25.7617, "lng": -80.1918},
-    {"name": "Las Vegas, NV", "lat": 36.1699, "lng": -115.1398},
-    {"name": "San Francisco, CA", "lat": 37.7749, "lng": -122.4194},
-    {"name": "Seattle, WA", "lat": 47.6062, "lng": -122.3321},
-    {"name": "Nashville, TN", "lat": 36.1627, "lng": -86.7816},
-    {"name": "Austin, TX", "lat": 30.2672, "lng": -97.7431},
-    {"name": "Denver, CO", "lat": 39.7392, "lng": -104.9903},
-    {"name": "Boston, MA", "lat": 42.3601, "lng": -71.0589},
-    {"name": "Atlanta, GA", "lat": 33.7490, "lng": -84.3880},
-    {"name": "Phoenix, AZ", "lat": 33.4484, "lng": -112.0740},
-    {"name": "Portland, OR", "lat": 45.5152, "lng": -122.6784},
-    {"name": "San Diego, CA", "lat": 32.7157, "lng": -117.1611},
-    {"name": "Washington, DC", "lat": 38.9072, "lng": -77.0369},
-    {"name": "Philadelphia, PA", "lat": 39.9526, "lng": -75.1652},
-    {"name": "New Orleans, LA", "lat": 29.9511, "lng": -90.0715},
-    {"name": "Charleston, SC", "lat": 32.7765, "lng": -79.9311},
-    {"name": "Savannah, GA", "lat": 32.0835, "lng": -81.0998}
-]
-
-def find_destination_cities(location1: tuple, location2: tuple, count: int = 5) -> List[Dict]:
-    """Find destination cities for long-distance dating"""
-    suggestions = []
-    
-    for city in DESTINATION_CITIES:
-        city_coord = (city["lat"], city["lng"])
-        dist1 = haversine_distance(location1, city_coord)
-        dist2 = haversine_distance(location2, city_coord)
-        total_dist = dist1 + dist2
-        fairness = abs(dist1 - dist2) / max(dist1, dist2)  # Lower is more fair
-        
-        # Score based on total distance and fairness
-        score = 1000 / total_dist - fairness * 100
-        
-        suggestions.append({
-            "name": city["name"],
-            "lat": city["lat"],
-            "lng": city["lng"],
-            "distance_person1": round(dist1, 1),
-            "distance_person2": round(dist2, 1),
-            "total_distance": round(total_dist, 1),
-            "fairness_score": round((1 - fairness) * 100, 1),
-            "score": round(score, 2)
-        })
-    
-    # Sort by score and return top suggestions
-    suggestions.sort(key=lambda x: x["score"], reverse=True)
-    return suggestions[:count]
+# The DESTINATION_CITIES list has been removed - using MAJOR_DESTINATIONS instead
 
 class LocationRequest(BaseModel):
     latitude: float
@@ -589,7 +545,7 @@ async def generate_date(request: DateRequest):
                     
                     if distance_km > 1000:  # ~620 miles - too far for midpoint
                         # Suggest destination cities instead
-                        destination_suggestions = find_destination_cities((lat1, lng1), (lat2, lng2))
+                        destination_suggestions = find_destination_cities((lat1, lng1), (lat2, lng2), num_suggestions=5)
                         return {
                             "success": True,
                             "two_location": True,
