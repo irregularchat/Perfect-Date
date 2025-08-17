@@ -659,7 +659,7 @@
         function toggleQuickDateLocation() {
             const checkbox = document.getElementById('quickSameLocationCheck');
             const container = document.getElementById('quickDateLocationContainer');
-            const input = document.getElementById('quickDateLocationInput');
+            const input = document.getElementById('quickDateLocation');
             
             if (checkbox.checked) {
                 container.classList.add('hidden');
@@ -866,38 +866,17 @@
             }
         }
 
-        // Two-location toggle functions
-        function toggleDateLocation() {
-            const checkbox = document.getElementById('sameLocationCheck');
-            const container = document.getElementById('dateLocationContainer');
-            
-            if (checkbox.checked) {
-                container.classList.add('hidden');
-            } else {
-                container.classList.remove('hidden');
-            }
-        }
-
-        function toggleQuickDateLocation() {
-            const checkbox = document.getElementById('quickSameLocationCheck');
-            const container = document.getElementById('quickDateLocationContainer');
-            
-            if (checkbox.checked) {
-                container.classList.add('hidden');
-            } else {
-                container.classList.remove('hidden');
-            }
-        }
-
+        // Copy my location function for date's location
         function copyMyLocation() {
-            const myLocation = document.getElementById('locationInput').value;
-            document.getElementById('dateLocationInput').value = myLocation;
+            const myLocation = document.getElementById('wizardLocation').value || document.getElementById('quickLocation').value;
+            if (document.getElementById('dateLocationInput')) {
+                document.getElementById('dateLocationInput').value = myLocation;
+            }
+            if (document.getElementById('quickDateLocation')) {
+                document.getElementById('quickDateLocation').value = myLocation;
+            }
         }
 
-        function copyQuickLocation() {
-            const myLocation = document.getElementById('quickLocation').value;
-            document.getElementById('quickDateLocation').value = myLocation;
-        }
 
         // Geolocation for classic form
         function getQuickLocation() {
@@ -2369,7 +2348,6 @@
 
         // Load shared plan on page load
         document.addEventListener('DOMContentLoaded', loadSharedPlan);
-        });
     </script>
 </body>
 </html>
