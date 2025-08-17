@@ -914,7 +914,79 @@
             .then(response => response.json())
             .then(result => {
                 if (result.success && result.activities) {
-                    displayResults(result, cityName);
+                    // Store API result for visualization
+                    apiResult = result;
+                    
+                    // Transform backend activities to frontend format
+                    timeline = result.activities.map((activity, index) => ({
+                        time: activity.time,
+                        activity: activity.activity,
+                        businessName: activity.place_name || activity.activity,
+                        cost: activity.estimated_cost || 50,
+                        location: [activity.location.lat, activity.location.lng],
+                        address: activity.address,
+                        rating: activity.rating,
+                        phone: activity.phone,
+                        website: activity.website,
+                        hours: activity.open_now ? 'Open Now' : 'Check Hours',
+                        place_id: activity.place_id,
+                        isDestination: true,
+                        destinationCity: cityName
+                    }));
+                    
+                    // Create timeline HTML with destination header
+                    const timelineHtml = `
+                        <div class="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6 mb-6">
+                            <div class="text-center mb-4">
+                                <h3 class="text-2xl font-bold text-blue-800">✈️ Your Perfect Date in ${cityName}</h3>
+                                <p class="text-sm text-blue-600 mt-2">Destination dating adventure planned!</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            ${timeline.map((item, index) => `
+                                <div class="activity-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div class="flex items-center">
+                                            <div class="bg-indigo-100 text-indigo-800 rounded-full p-3 mr-4">
+                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h3 class="font-bold text-lg">${item.time}</h3>
+                                                <p class="text-gray-600">${item.businessName}</p>
+                                            </div>
+                                        </div>
+                                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">$${item.cost}</span>
+                                    </div>
+                                    <div class="ml-14">
+                                        ${item.address ? `<p class="text-sm text-gray-600 mb-2">📍 ${item.address}</p>` : ''}
+                                        ${item.rating ? `<p class="text-sm text-yellow-600 mb-2">⭐ ${item.rating} stars</p>` : ''}
+                                        ${item.phone ? `<p class="text-sm text-gray-600 mb-2">📞 ${item.phone}</p>` : ''}
+                                        ${item.website ? `<a href="${item.website}" target="_blank" class="text-sm text-blue-600 hover:underline">🌐 Visit Website</a>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="mt-6 text-center">
+                            <button onclick="location.reload()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                                Plan Another Date
+                            </button>
+                        </div>
+                    `;
+                    
+                    resultsDiv.innerHTML = timelineHtml;
+                    resultsDiv.classList.remove('hidden');
+                    resultsDiv.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // Initialize map if needed
+                    setTimeout(() => {
+                        if (typeof initializeMap !== 'undefined') {
+                            initializeMap();
+                        }
+                    }, 100);
                 } else {
                     resultsDiv.innerHTML = `
                         <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
