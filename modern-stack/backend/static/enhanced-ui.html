@@ -167,6 +167,25 @@
                                 </button>
                             </div>
                         </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date's Location (Optional)</label>
+                            <div class="space-y-3">
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="sameLocationCheck" checked onchange="toggleDateLocation()" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                    <label for="sameLocationCheck" class="text-sm text-gray-600">Same as my location</label>
+                                </div>
+                                <div id="dateLocationContainer" class="hidden">
+                                    <div class="flex space-x-2">
+                                        <input type="text" id="dateLocationInput" placeholder="Enter your date's city or address" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                        <button onclick="copyMyLocation()" class="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                                            📋 Copy Mine
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">We'll find venues that minimize travel for both of you</p>
+                                </div>
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Preferences</label>
                             <textarea id="preferences" placeholder="What do you like? Any special requests?" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" rows="3"></textarea>
@@ -202,10 +221,27 @@
             <form id="dateForm" class="space-y-4">
                 <!-- Location with geolocation button -->
                 <div class="flex space-x-2">
-                    <input type="text" id="quickLocation" placeholder="Location" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="quickLocation" placeholder="Your location" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                     <button type="button" onclick="getQuickLocation()" id="quickLocationBtn" class="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                         📍 Use My Location
                     </button>
+                </div>
+                
+                <!-- Date's Location (Optional) -->
+                <div class="space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="quickSameLocationCheck" checked onchange="toggleQuickDateLocation()" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="quickSameLocationCheck" class="text-sm text-gray-600">Same as my location</label>
+                    </div>
+                    <div id="quickDateLocationContainer" class="hidden">
+                        <div class="flex space-x-2">
+                            <input type="text" id="quickDateLocation" placeholder="Your date's location" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <button type="button" onclick="copyQuickLocation()" class="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                                📋 Copy Mine
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Find venues that minimize travel for both</p>
+                    </div>
                 </div>
                 
                 <!-- Budget and other options -->
@@ -303,6 +339,7 @@
         let map = null;
         let timeline = [];
         let markers = [];
+        let apiResult = null; // Store API result for map visualization
         
         // Real business locations in Fayetteville, NC with consistent addresses
         const fayettevilleBusinesses = {
@@ -421,6 +458,175 @@
             const address = business ? business.address : '123 Downtown Plaza, Fayetteville, NC'; // Default address
             console.log(`Getting address for "${businessName}": ${address}`);
             return address;
+        }
+
+        // Destination selection functions for long-distance dating
+        function selectDestination(cityName, lat, lng) {
+            // Keep original locations and add the selected destination
+            // Don't clear the original two-location data
+            dateData.selected_destination = cityName;
+            dateData.destination_coordinates = [lat, lng];
+            
+            // DON'T clear date_location - keep it for context
+            // The API should use selected_destination as the search location while
+            // maintaining the original two-location context for display
+            
+            // Clear any form inputs that might interfere
+            const dateLocationInput = document.getElementById('quickDateLocation');
+            if (dateLocationInput) {
+                dateLocationInput.value = '';
+                dateLocationInput.style.display = 'none';
+            }
+            
+            const sameLocationCheck = document.getElementById('quickSameLocationCheck');
+            if (sameLocationCheck) {
+                sameLocationCheck.checked = true;
+            }
+            
+            // Ensure we have all the necessary form data
+            if (!dateData.budget) {
+                dateData.budget = parseInt(document.getElementById('quickBudget')?.value) || 100;
+            }
+            if (!dateData.eventType) {
+                dateData.eventType = document.getElementById('quickEventType')?.value || 'casual_dating';
+            }
+            if (!dateData.vibes || dateData.vibes.length === 0) {
+                // Get selected vibes from both wizard and classic forms
+                const selectedVibes = [];
+                
+                // Check wizard form vibes (look for buttons with indigo background)
+                document.querySelectorAll('.vibe-btn.bg-indigo-600').forEach(btn => {
+                    if (btn.dataset.vibe) selectedVibes.push(btn.dataset.vibe);
+                });
+                
+                // Check classic form vibes (look for buttons with indigo background)
+                document.querySelectorAll('.quick-vibe.bg-indigo-600').forEach(btn => {
+                    if (btn.dataset.vibe) selectedVibes.push(btn.dataset.vibe);
+                });
+                
+                // Use current dateData.vibes if they exist from previous selections
+                if (dateData.vibes && dateData.vibes.length > 0) {
+                    selectedVibes.push(...dateData.vibes);
+                }
+                
+                // Remove duplicates and set
+                dateData.vibes = [...new Set(selectedVibes)];
+                
+                if (dateData.vibes.length === 0) {
+                    dateData.vibes = ['romantic']; // Default for destination dating
+                }
+            }
+            if (!dateData.timeAvailable) {
+                dateData.timeAvailable = 4; // Default 4 hours for getaway
+            }
+            
+            // Show confirmation and generate date
+            const originalLoc1 = dateData.location || 'Location 1';
+            const originalLoc2 = dateData.date_location || 'Location 2';
+            const confirmation = confirm(`Meet in ${cityName}?\n\nThis will create date ideas in ${cityName} as the perfect meeting destination for:\n• ${originalLoc1}\n• ${originalLoc2}\n\nGenerate romantic getaway itinerary?`);
+            if (confirmation) {
+                console.log('Selected destination:', cityName, 'for meeting between:', originalLoc1, 'and', originalLoc2);
+                
+                // Clear the results section first to show we're generating new content
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="inline-flex items-center justify-center">
+                            <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                        </div>
+                        <p class="mt-4 text-gray-600">Generating romantic getaway ideas for ${cityName}...</p>
+                        <p class="mt-2 text-sm text-gray-500">Finding the best venues, restaurants, and activities...</p>
+                    </div>
+                `;
+                resultsDiv.classList.remove('hidden');
+                resultsDiv.scrollIntoView({ behavior: 'smooth' });
+                
+                // Force a small delay to ensure dateData is properly set
+                setTimeout(() => {
+                    console.log('Final dateData before API call:', dateData);
+                    generateDate();
+                }, 100);
+            }
+        }
+        
+        function showSingleLocationOption() {
+            // Reset form to single location mode
+            document.getElementById('quickSameLocationCheck').checked = true;
+            document.getElementById('quickDateLocation').style.display = 'none';
+            dateData.date_location = null;
+            
+            // Scroll back to form
+            document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
+            
+            alert('Switched to single-location mode. Choose one location for your date.');
+        }
+
+        // Add explanation for destination dating mode
+        function addDestinationExplanation(destination, location1, location2) {
+            const explanationDiv = document.getElementById('twoLocationExplanation');
+            const contentDiv = document.getElementById('explanationContent');
+            
+            if (!explanationDiv || !contentDiv) return;
+            
+            contentDiv.innerHTML = `
+                <div class="text-center">
+                    <div class="text-lg font-bold text-blue-900 mb-3">✈️ Destination Meeting Point</div>
+                    <div class="bg-white/50 rounded-lg p-4 mb-4">
+                        <div class="grid md:grid-cols-3 gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="font-medium text-blue-900">📍 Your Location</div>
+                                <div class="text-blue-700">${location1}</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-medium text-green-900">🎯 Meeting Destination</div>
+                                <div class="text-green-700 font-bold">${destination}</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-medium text-blue-900">📍 Date's Location</div>
+                                <div class="text-blue-700">${location2}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-blue-700">
+                        ✨ Perfect romantic getaway destination chosen for both of you! All venues and activities below are located in <strong>${destination}</strong>, making it an ideal meeting point for your long-distance date.
+                    </div>
+                </div>
+            `;
+            
+            // Show the explanation panel
+            explanationDiv.classList.remove('hidden');
+        }
+
+        // Add explanation for two-location optimization
+        function addTwoLocationExplanation(result) {
+            const explanationDiv = document.getElementById('twoLocationExplanation');
+            const contentDiv = document.getElementById('explanationContent');
+            
+            if (!explanationDiv || !contentDiv) return;
+            
+            // Calculate distance between the two locations for display
+            const searchRadiusKm = result.search_radius_km || 0;
+            const centerLat = result.center?.lat;
+            const centerLng = result.center?.lng;
+            
+            contentDiv.innerHTML = `
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-sm font-medium text-blue-900">📍 Search Center</div>
+                        <div class="text-sm text-blue-700">${centerLat?.toFixed(4)}, ${centerLng?.toFixed(4)}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-blue-900">🎯 Search Radius</div>
+                        <div class="text-sm text-blue-700">${searchRadiusKm.toFixed(1)} km (${(searchRadiusKm * 0.621371).toFixed(1)} miles)</div>
+                    </div>
+                </div>
+                <div class="mt-3 text-sm text-blue-700">
+                    ✨ We found the optimal meeting point between your two locations and searched for venues within a ${(searchRadiusKm * 0.621371).toFixed(1)}-mile radius. This ensures both people travel a fair distance while maximizing your dating venue options.
+                </div>
+            `;
+            
+            // Show the explanation panel
+            explanationDiv.classList.remove('hidden');
         }
 
         // Form mode toggle
@@ -626,6 +832,39 @@
             }
         }
 
+        // Two-location toggle functions
+        function toggleDateLocation() {
+            const checkbox = document.getElementById('sameLocationCheck');
+            const container = document.getElementById('dateLocationContainer');
+            
+            if (checkbox.checked) {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+            }
+        }
+
+        function toggleQuickDateLocation() {
+            const checkbox = document.getElementById('quickSameLocationCheck');
+            const container = document.getElementById('quickDateLocationContainer');
+            
+            if (checkbox.checked) {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+            }
+        }
+
+        function copyMyLocation() {
+            const myLocation = document.getElementById('locationInput').value;
+            document.getElementById('dateLocationInput').value = myLocation;
+        }
+
+        function copyQuickLocation() {
+            const myLocation = document.getElementById('quickLocation').value;
+            document.getElementById('quickDateLocation').value = myLocation;
+        }
+
         // Geolocation for classic form
         function getQuickLocation() {
             const btn = document.getElementById('quickLocationBtn');
@@ -711,6 +950,16 @@
             if (document.getElementById('locationInput')) {
                 dateData.location = document.getElementById('locationInput').value;
             }
+            
+            // Collect date location from wizard
+            const sameLocationCheck = document.getElementById('sameLocationCheck');
+            if (sameLocationCheck && !sameLocationCheck.checked) {
+                const dateLocationValue = document.getElementById('dateLocationInput').value;
+                if (dateLocationValue && dateLocationValue.trim()) {
+                    dateData.date_location = dateLocationValue.trim();
+                }
+            }
+            
             if (document.getElementById('preferences')) {
                 dateData.preferences = document.getElementById('preferences').value;
             }
@@ -719,6 +968,15 @@
             if (formMode === 'classic') {
                 dateData.location = document.getElementById('quickLocation').value || 'Virginia Beach';
                 dateData.budget = parseInt(document.getElementById('quickBudget').value) || 100;
+                
+                // Collect date location from classic form
+                const quickSameLocationCheck = document.getElementById('quickSameLocationCheck');
+                if (quickSameLocationCheck && !quickSameLocationCheck.checked) {
+                    const quickDateLocationValue = document.getElementById('quickDateLocation').value;
+                    if (quickDateLocationValue && quickDateLocationValue.trim()) {
+                        dateData.date_location = quickDateLocationValue.trim();
+                    }
+                }
             }
 
             // Show loading state
@@ -737,6 +995,28 @@
             setTimeout(() => {
                 // Restore results structure
                 resultsDiv.innerHTML = `
+                    <!-- Two-Location Explanation (hidden by default) -->
+                    <div id="twoLocationExplanation" class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-xl p-6 mb-6 hidden">
+                        <div class="flex items-start space-x-4">
+                            <div class="flex-shrink-0">
+                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                    📍
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-blue-900 mb-2">🎯 Smart Meeting Point Optimization</h3>
+                                <div id="explanationContent" class="text-blue-800 space-y-2">
+                                    <!-- Content will be populated by JavaScript -->
+                                </div>
+                                <div class="mt-4 p-3 bg-white/50 rounded-lg">
+                                    <div class="text-sm text-blue-700">
+                                        <strong>🧮 How it works:</strong> We calculate the geographic midpoint between your locations, then search for venues within an optimized radius based on your total distance. This ensures fair travel for both people while maximizing venue options.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Interactive Map -->
                     <div class="bg-white rounded-2xl shadow-xl p-6">
                         <div class="flex justify-between items-center mb-4">
@@ -836,24 +1116,140 @@
             }
             
             try {
+                // Prepare API request data
+                let searchLocation = dateData.location || `${baseLat}, ${baseLng}`;
+                let searchDateLocation = dateData.date_location || null;
+                
+                // If a destination was selected from long-distance suggestions, use it as single location
+                if (dateData.selected_destination) {
+                    searchLocation = dateData.selected_destination;
+                    searchDateLocation = null; // Override to single-location mode
+                    console.log(`Using selected destination: ${dateData.selected_destination} instead of original locations`);
+                }
+                
+                const requestData = {
+                    location: searchLocation,
+                    date_location: searchDateLocation,
+                    budget: budget,
+                    event_type: eventType,
+                    vibes: vibes,
+                    time_available: hours,
+                    // Include context for display purposes
+                    original_location: dateData.location,
+                    original_date_location: dateData.date_location,
+                    selected_destination: dateData.selected_destination || null
+                };
+                
+                console.log('API Request Data:', requestData);
+                
                 // Call backend API to generate real places
                 const response = await fetch('/api/generate-date', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        location: `${baseLat}, ${baseLng}`,
-                        budget: budget,
-                        event_type: eventType,
-                        vibes: vibes,
-                        time_available: hours
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
                 if (response.ok) {
                     const result = await response.json();
+                    
+                    // Handle distance validation errors with destination suggestions
+                    if (!result.success && result.error === 'distance_too_large_with_destinations') {
+                        const destinationsHtml = result.suggested_destinations.map((dest, index) => `
+                            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer" onclick="selectDestination('${dest.city}', ${dest.coordinates[0]}, ${dest.coordinates[1]})">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-bold text-gray-800">${dest.city}</h4>
+                                    <span class="text-sm px-2 py-1 rounded ${dest.is_hub ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}">
+                                        ${dest.is_hub ? '✈️ Major Hub' : '🏙️ City'}
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-2">
+                                    <div>You: ${dest.distance_person1_mi.toFixed(0)} mi</div>
+                                    <div>Date: ${dest.distance_person2_mi.toFixed(0)} mi</div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs text-green-600">Fairness: ${dest.fairness_score.toFixed(0)}%</span>
+                                    <span class="text-xs text-blue-600">Total: ${dest.total_travel_mi.toFixed(0)} mi</span>
+                                </div>
+                            </div>
+                        `).join('');
+
+                        const errorMessage = `
+                            <div class="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
+                                <div class="text-center mb-6">
+                                    <div class="text-6xl mb-4">✈️</div>
+                                    <h3 class="text-2xl font-bold text-blue-800 mb-3">Destination Dating Mode</h3>
+                                    <div class="text-blue-700 mb-4">
+                                        <p class="mb-2"><strong>Distance:</strong> ${(result.distance_km * 0.621371).toFixed(0)} miles (${result.distance_km.toFixed(0)} km)</p>
+                                        <p class="text-sm">Perfect for a romantic getaway! Choose a destination city that works for both of you.</p>
+                                    </div>
+                                </div>
+
+                                <div class="mb-6">
+                                    <h4 class="text-lg font-bold text-blue-800 mb-4 text-center">🎯 Recommended Meeting Destinations</h4>
+                                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        ${destinationsHtml}
+                                    </div>
+                                </div>
+
+                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                                    <div class="text-yellow-800 text-sm">
+                                        <strong>💡 How it works:</strong> We analyzed ${Object.keys(window.MAJOR_DESTINATIONS || {}).length || '50+'} major cities and airports to find the best meeting points. Destinations are ranked by travel fairness, proximity to the geographic midpoint, and airline connectivity.
+                                    </div>
+                                </div>
+
+                                <div class="text-center space-x-3">
+                                    <button onclick="location.reload()" class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                                        Try Different Locations
+                                    </button>
+                                    <button onclick="showSingleLocationOption()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        Use Single Location Instead
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        document.getElementById('results').innerHTML = errorMessage;
+                        document.getElementById('results').classList.remove('hidden');
+                        document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+                        return;
+                    }
+                    
+                    // Handle simple distance validation errors (fallback)
+                    if (!result.success && result.error === 'distance_too_large') {
+                        const errorMessage = `
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                                <div class="text-6xl mb-4">🌍</div>
+                                <h3 class="text-xl font-bold text-red-800 mb-3">Distance Too Large for Dating</h3>
+                                <div class="text-red-700 mb-4">
+                                    <p class="mb-2"><strong>Distance:</strong> ${(result.distance_km * 0.621371).toFixed(0)} miles (${result.distance_km.toFixed(0)} km)</p>
+                                    <p class="text-sm">${result.message}</p>
+                                </div>
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                                    <div class="text-blue-800 text-sm">
+                                        <strong>💡 Suggestions:</strong>
+                                        <ul class="mt-2 text-left space-y-1">
+                                            <li>• Use single-location mode instead</li>
+                                            <li>• Choose locations within 620 miles of each other</li>
+                                            <li>• Consider virtual dating options for long distances</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <button onclick="location.reload()" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                    Try Again
+                                </button>
+                            </div>
+                        `;
+                        document.getElementById('results').innerHTML = errorMessage;
+                        document.getElementById('results').classList.remove('hidden');
+                        document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+                        return;
+                    }
+                    
                     if (result.success && result.activities) {
+                        // Store API result for map visualization
+                        apiResult = result;
+                        
                         // Transform backend activities to frontend format
                         timeline = result.activities.map((activity, index) => ({
                             time: activity.time,
@@ -865,8 +1261,22 @@
                             rating: activity.rating,
                             phone: activity.phone,
                             website: activity.website,
-                            hours: activity.open_now ? 'Open Now' : 'Check Hours'
+                            hours: activity.open_now ? 'Open Now' : 'Check Hours',
+                            travel_person1: activity.travel_person1,
+                            travel_person2: activity.travel_person2,
+                            fairness_score: activity.fairness_score
                         }));
+                        
+                        // Add explanation for different scenarios
+                        if (dateData.selected_destination) {
+                            // This is a destination date from long-distance suggestion
+                            addDestinationExplanation(dateData.selected_destination, dateData.location, dateData.date_location);
+                        } else if (result.two_location_mode) {
+                            addTwoLocationExplanation(result);
+                        } else if (dateData.date_location && dateData.date_location !== dateData.location) {
+                            // This was a two-location request that succeeded (reasonable distance)
+                            addTwoLocationExplanation(result);
+                        }
                         
                         console.log('Generated timeline with real Google Places:', timeline);
                         renderTimeline();
@@ -963,6 +1373,27 @@
                                                 <span class="font-medium text-gray-700">📞 Phone:</span>
                                                 <span class="text-blue-600">${item.phone || generateMockPhone()}</span>
                                             </div>
+                                            ${item.travel_person1 ? `
+                                            <div class="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-200">
+                                                <div class="text-xs font-medium text-blue-800 mb-1">🚗 Travel Info</div>
+                                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                                    <div>
+                                                        <span class="font-medium text-blue-700">You:</span>
+                                                        <span class="text-blue-600">${item.travel_person1.distance_mi} mi</span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="font-medium text-blue-700">Date:</span>
+                                                        <span class="text-blue-600">${item.travel_person2.distance_mi} mi</span>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-1">
+                                                    <span class="font-medium text-blue-700">Fairness:</span>
+                                                    <span class="text-blue-600">${item.fairness_score}% equitable</span>
+                                                    ${item.fairness_score >= 85 ? '<span class="text-green-600 text-xs ml-1">✨ Very Fair</span>' : ''}
+                                                    ${item.fairness_score < 70 ? '<span class="text-orange-600 text-xs ml-1">⚖️ Slightly Unequal</span>' : ''}
+                                                </div>
+                                            </div>
+                                            ` : ''}
                                             <div class="flex flex-wrap gap-2 mt-2">
                                                 <div class="relative">
                                                     <button onclick="showDirectionsMenu(${item.location[0]}, ${item.location[1]}, ${index})" class="text-blue-600 hover:underline text-xs bg-blue-50 px-2 py-1 rounded">🗺️ Directions</button>
@@ -1039,9 +1470,17 @@
                 return;
             }
             
-            // Clear existing markers
+            // Clear existing markers and overlays
             markers.forEach(m => map.removeLayer(m));
             markers = [];
+            
+            // Clear existing layers (search radius, center marker, etc.)
+            map.eachLayer(layer => {
+                if (layer instanceof L.Circle || layer instanceof L.Polyline || 
+                    (layer instanceof L.Marker && layer.options.isCustom)) {
+                    map.removeLayer(layer);
+                }
+            });
 
             console.log(`Adding ${timeline.length} markers to map:`);
             
@@ -1097,6 +1536,57 @@
                     `);
                 markers.push(marker);
             });
+
+            // Add two-location mode visualization
+            if (apiResult && apiResult.two_location_mode) {
+                // Add search center marker
+                const centerMarker = L.marker([apiResult.center.lat, apiResult.center.lng], {
+                    isCustom: true,
+                    icon: L.divIcon({
+                        className: 'custom-center-marker',
+                        html: `
+                            <div class="w-8 h-8 bg-yellow-400 border-4 border-yellow-600 rounded-full flex items-center justify-center shadow-lg">
+                                <span class="text-yellow-800 text-lg font-bold">⚖️</span>
+                            </div>
+                        `,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    })
+                }).addTo(map)
+                .bindPopup(`
+                    <div class="p-3 text-center">
+                        <div class="font-bold text-yellow-700 mb-2">🎯 Optimal Meeting Point</div>
+                        <div class="text-sm text-gray-600 mb-2">
+                            Geographic center between both locations
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            ${apiResult.center.lat.toFixed(4)}, ${apiResult.center.lng.toFixed(4)}
+                        </div>
+                    </div>
+                `);
+                
+                // Add search radius circle
+                const radiusMeters = apiResult.search_radius_km * 1000;
+                L.circle([apiResult.center.lat, apiResult.center.lng], {
+                    radius: radiusMeters,
+                    color: '#3B82F6',
+                    fillColor: '#3B82F6',
+                    fillOpacity: 0.1,
+                    weight: 2,
+                    opacity: 0.5
+                }).addTo(map)
+                .bindPopup(`
+                    <div class="p-3 text-center">
+                        <div class="font-bold text-blue-700 mb-2">🔍 Search Area</div>
+                        <div class="text-sm text-gray-600 mb-2">
+                            ${(apiResult.search_radius_km * 0.621371).toFixed(1)}-mile radius
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            All venues found within this optimized area
+                        </div>
+                    </div>
+                `);
+            }
 
             // Draw route between markers
             if (markers.length > 1) {
