@@ -877,6 +877,76 @@
             }
         }
 
+        // Handle destination city selection for long-distance dating
+        function selectDestinationCity(cityName, lat, lng) {
+            console.log(`Selected destination: ${cityName} at (${lat}, ${lng})`);
+            
+            // Show loading state
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="text-center py-12">
+                    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <p class="text-gray-600">Generating date ideas for ${cityName}...</p>
+                </div>
+            `;
+            
+            // Update the location to the selected destination and generate date
+            const location = `${cityName}`;
+            
+            // Prepare the date request with the destination city
+            const dateData = {
+                location: location,
+                date_location: null,  // Single location mode for destination
+                budget: parseInt(document.getElementById('quickBudget')?.value) || 100,
+                event_type: document.getElementById('quickEventType')?.value || 'casual_dating',
+                vibes: collectVibes(),
+                time_available: 4
+            };
+            
+            // Call API to generate date ideas for the destination
+            fetch('/api/generate-date', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dateData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success && result.activities) {
+                    displayResults(result, cityName);
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                            <p class="text-red-700">Failed to generate date ideas for ${cityName}. Please try again.</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error generating destination date:', error);
+                resultsDiv.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                        <p class="text-red-700">An error occurred. Please try again.</p>
+                    </div>
+                `;
+            });
+        }
+
+        function collectVibes() {
+            const vibes = [];
+            document.querySelectorAll('input[name="vibe"]:checked').forEach(checkbox => {
+                vibes.push(checkbox.value);
+            });
+            if (vibes.length === 0) {
+                // Check classic form vibes
+                document.querySelectorAll('button[data-vibe].bg-indigo-600').forEach(btn => {
+                    vibes.push(btn.dataset.vibe);
+                });
+            }
+            return vibes;
+        }
+
 
         // Geolocation for classic form
         function getQuickLocation() {
@@ -1183,11 +1253,12 @@
                     // Handle long-distance with destination suggestions
                     if (result.long_distance && result.destination_suggestions) {
                         const destinationsHtml = result.destination_suggestions.map((dest, index) => `
-                            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer">
+                            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer" 
+                                 onclick="selectDestinationCity('${dest.name.replace(/'/g, "\\'")}', ${dest.lat}, ${dest.lng})">
                                 <div class="flex justify-between items-start mb-2">
                                     <h4 class="font-bold text-gray-800">${dest.name}</h4>
-                                    <span class="text-sm px-2 py-1 rounded bg-gray-100 text-gray-600">
-                                        🏙️ City
+                                    <span class="text-sm px-2 py-1 rounded ${dest.is_hub ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}">
+                                        ${dest.is_hub ? '✈️ Hub' : '🏙️ City'}
                                     </span>
                                 </div>
                                 <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-2">
