@@ -8,6 +8,7 @@ import json
 import sqlite3
 import hashlib
 import secrets
+import math
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, FileResponse
@@ -122,12 +123,115 @@ def increment_view_count(share_id: str):
 # Initialize database on startup
 init_database()
 
+def haversine_distance(coord1: tuple, coord2: tuple) -> float:
+    """Calculate the great-circle distance between two points on Earth"""
+    lat1, lon1 = coord1
+    lat2, lon2 = coord2
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    r = 6371  # Earth radius in kilometers
+    return c * r
+
+def calculate_midpoint_and_radius(location1: tuple, location2: tuple) -> tuple:
+    """Calculate optimal meeting point and search radius for two locations"""
+    # Distance validation with 620-mile practical limit
+    distance_km = haversine_distance(location1, location2)
+    if distance_km > 1000:  # ~620 miles
+        raise ValueError(f"Distance too large for practical dating: {distance_km:.0f} km. Consider destination dating instead.")
+    
+    # Geographic midpoint using spherical geometry
+    lat1, lon1 = map(math.radians, location1)
+    lat2, lon2 = map(math.radians, location2)
+    
+    # Convert to cartesian coordinates
+    x1, y1, z1 = math.cos(lat1) * math.cos(lon1), math.cos(lat1) * math.sin(lon1), math.sin(lat1)
+    x2, y2, z2 = math.cos(lat2) * math.cos(lon2), math.cos(lat2) * math.sin(lon2), math.sin(lat2)
+    
+    # Average coordinates
+    x, y, z = (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2
+    
+    # Convert back to lat/lng
+    lon = math.atan2(y, x)
+    hyp = math.sqrt(x * x + y * y)
+    lat = math.atan2(z, hyp)
+    
+    midpoint = (math.degrees(lat), math.degrees(lon))
+    
+    # Smart radius based on distance between locations
+    if distance_km < 8:      # Close by (< 5 miles)
+        radius = min(4800, distance_km * 1000 * 0.6)  # 60%, max 3 miles
+    elif distance_km < 32:   # Medium distance (< 20 miles)
+        radius = min(16000, distance_km * 1000 * 0.4) # 40%, max 10 miles  
+    elif distance_km < 80:   # Long distance (< 50 miles)
+        radius = min(24000, distance_km * 1000 * 0.3) # 30%, max 15 miles
+    else:                    # Very long distance
+        radius = min(40000, distance_km * 1000 * 0.2) # 20%, max 25 miles
+    
+    return midpoint, int(radius), distance_km
+
+# Destination cities for long-distance dating
+DESTINATION_CITIES = [
+    {"name": "New York, NY", "lat": 40.7128, "lng": -74.0060},
+    {"name": "Los Angeles, CA", "lat": 34.0522, "lng": -118.2437},
+    {"name": "Chicago, IL", "lat": 41.8781, "lng": -87.6298},
+    {"name": "Miami, FL", "lat": 25.7617, "lng": -80.1918},
+    {"name": "Las Vegas, NV", "lat": 36.1699, "lng": -115.1398},
+    {"name": "San Francisco, CA", "lat": 37.7749, "lng": -122.4194},
+    {"name": "Seattle, WA", "lat": 47.6062, "lng": -122.3321},
+    {"name": "Nashville, TN", "lat": 36.1627, "lng": -86.7816},
+    {"name": "Austin, TX", "lat": 30.2672, "lng": -97.7431},
+    {"name": "Denver, CO", "lat": 39.7392, "lng": -104.9903},
+    {"name": "Boston, MA", "lat": 42.3601, "lng": -71.0589},
+    {"name": "Atlanta, GA", "lat": 33.7490, "lng": -84.3880},
+    {"name": "Phoenix, AZ", "lat": 33.4484, "lng": -112.0740},
+    {"name": "Portland, OR", "lat": 45.5152, "lng": -122.6784},
+    {"name": "San Diego, CA", "lat": 32.7157, "lng": -117.1611},
+    {"name": "Washington, DC", "lat": 38.9072, "lng": -77.0369},
+    {"name": "Philadelphia, PA", "lat": 39.9526, "lng": -75.1652},
+    {"name": "New Orleans, LA", "lat": 29.9511, "lng": -90.0715},
+    {"name": "Charleston, SC", "lat": 32.7765, "lng": -79.9311},
+    {"name": "Savannah, GA", "lat": 32.0835, "lng": -81.0998}
+]
+
+def find_destination_cities(location1: tuple, location2: tuple, count: int = 5) -> List[Dict]:
+    """Find destination cities for long-distance dating"""
+    suggestions = []
+    
+    for city in DESTINATION_CITIES:
+        city_coord = (city["lat"], city["lng"])
+        dist1 = haversine_distance(location1, city_coord)
+        dist2 = haversine_distance(location2, city_coord)
+        total_dist = dist1 + dist2
+        fairness = abs(dist1 - dist2) / max(dist1, dist2)  # Lower is more fair
+        
+        # Score based on total distance and fairness
+        score = 1000 / total_dist - fairness * 100
+        
+        suggestions.append({
+            "name": city["name"],
+            "lat": city["lat"],
+            "lng": city["lng"],
+            "distance_person1": round(dist1, 1),
+            "distance_person2": round(dist2, 1),
+            "total_distance": round(total_dist, 1),
+            "fairness_score": round((1 - fairness) * 100, 1),
+            "score": round(score, 2)
+        })
+    
+    # Sort by score and return top suggestions
+    suggestions.sort(key=lambda x: x["score"], reverse=True)
+    return suggestions[:count]
+
 class LocationRequest(BaseModel):
     latitude: float
     longitude: float
 
 class DateRequest(BaseModel):
     location: str
+    date_location: Optional[str] = None
     budget: int
     event_type: str
     vibes: List[str]
@@ -207,8 +311,8 @@ async def geocode_location(location: LocationRequest):
 async def generate_date(request: DateRequest):
     """Generate date ideas based on location and preferences"""
     
-    # Parse location to get coordinates
-    lat, lng = 36.8529, -75.9780  # Default to Virginia Beach
+    # Parse primary location to get coordinates
+    lat, lng = 35.0526, -78.8783  # Default to Fayetteville, NC
     
     if gmaps and request.location:
         try:
@@ -217,26 +321,95 @@ async def generate_date(request: DateRequest):
                 location = geocode_result[0]["geometry"]["location"]
                 lat, lng = location["lat"], location["lng"]
         except Exception as e:
-            print(f"Geocoding error: {e}")
+            print(f"Geocoding error for location: {e}")
+    
+    search_center = (lat, lng)
+    search_radius = 8000  # Default 8km radius
+    is_two_location = False
+    distance_info = None
+    destination_suggestions = None
+    
+    # Handle two-location dating
+    if request.date_location and request.date_location.strip():
+        try:
+            # Geocode the second location
+            date_lat, date_lng = lat, lng  # Default to same as first location
+            
+            if gmaps:
+                try:
+                    date_geocode_result = gmaps.geocode(request.date_location)
+                    if date_geocode_result:
+                        date_location = date_geocode_result[0]["geometry"]["location"]
+                        date_lat, date_lng = date_location["lat"], date_location["lng"]
+                except Exception as e:
+                    print(f"Geocoding error for date location: {e}")
+            
+            location1 = (lat, lng)
+            location2 = (date_lat, date_lng)
+            
+            # Calculate distance
+            distance_km = haversine_distance(location1, location2)
+            
+            if distance_km > 1000:  # ~620 miles - too far for midpoint
+                # Suggest destination cities instead
+                destination_suggestions = find_destination_cities(location1, location2)
+                return {
+                    "success": True,
+                    "two_location": True,
+                    "long_distance": True,
+                    "distance_km": round(distance_km, 1),
+                    "destination_suggestions": destination_suggestions,
+                    "message": f"The distance ({distance_km:.0f} km) is too large for midpoint dating. Here are some great destination cities for your date!"
+                }
+            else:
+                # Calculate midpoint and radius
+                search_center, search_radius, distance_km = calculate_midpoint_and_radius(location1, location2)
+                is_two_location = True
+                
+                # Calculate travel distances
+                midpoint_to_location1 = haversine_distance(search_center, location1)
+                midpoint_to_location2 = haversine_distance(search_center, location2)
+                
+                distance_info = {
+                    "total_distance_km": round(distance_km, 1),
+                    "person1_travel_km": round(midpoint_to_location1, 1),
+                    "person2_travel_km": round(midpoint_to_location2, 1),
+                    "fairness_score": round(100 - (abs(midpoint_to_location1 - midpoint_to_location2) / max(midpoint_to_location1, midpoint_to_location2)) * 100, 1),
+                    "search_radius_km": round(search_radius / 1000, 1)
+                }
+                
+        except Exception as e:
+            print(f"Error processing two-location dating: {e}")
+            # Fall back to single location
+            is_two_location = False
     
     # Generate activities based on preferences
     activities = generate_activities(
         event_type=request.event_type,
         budget=request.budget,
         vibes=request.vibes,
-        location=(lat, lng),
+        location=search_center,
         time_available=request.time_available
     )
     
     # Find real places if Google Maps is available
     if gmaps:
-        activities = enhance_with_real_places(activities, (lat, lng), request.vibes)
+        activities = enhance_with_real_places(activities, search_center, request.vibes)
     
-    return {
+    response = {
         "success": True,
-        "center": {"lat": lat, "lng": lng},
-        "activities": activities
+        "center": {"lat": search_center[0], "lng": search_center[1]},
+        "activities": activities,
+        "two_location": is_two_location
     }
+    
+    if distance_info:
+        response["distance_info"] = distance_info
+    
+    if is_two_location:
+        response["message"] = f"Perfect! Found the optimal midpoint for both locations ({distance_info['total_distance_km']} km apart)"
+    
+    return response
 
 def generate_activities(event_type: str, budget: int, vibes: List[str], 
                         location: tuple, time_available: int) -> List[Dict]:

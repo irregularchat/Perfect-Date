@@ -167,6 +167,22 @@
                                 </button>
                             </div>
                         </div>
+                        
+                        <!-- Partner Location Section -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date's Location (Optional)</label>
+                            <div class="space-y-3">
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="sameLocationCheck" checked onchange="toggleDateLocation()" class="rounded">
+                                    <label for="sameLocationCheck" class="text-sm text-gray-600">Same as my location</label>
+                                </div>
+                                <div id="dateLocationContainer" class="hidden">
+                                    <input type="text" id="dateLocationInput" placeholder="Enter your date's city or address" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <p class="text-xs text-gray-500 mt-1">We'll find the perfect midpoint for both of you! 🎯</p>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Preferences</label>
                             <textarea id="preferences" placeholder="What do you like? Any special requests?" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" rows="3"></textarea>
@@ -206,6 +222,18 @@
                     <button type="button" onclick="getQuickLocation()" id="quickLocationBtn" class="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                         📍 Use My Location
                     </button>
+                </div>
+                
+                <!-- Partner Location Section -->
+                <div class="space-y-3">
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="quickSameLocationCheck" checked onchange="toggleQuickDateLocation()" class="rounded">
+                        <label for="quickSameLocationCheck" class="text-sm text-gray-600">Date is at same location</label>
+                    </div>
+                    <div id="quickDateLocationContainer" class="hidden">
+                        <input type="text" id="quickDateLocationInput" placeholder="Your date's location" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        <p class="text-xs text-gray-500 mt-1">We'll find the perfect midpoint! 🎯</p>
+                    </div>
                 </div>
                 
                 <!-- Budget and other options -->
@@ -429,6 +457,38 @@
             document.getElementById('formWizard').classList.toggle('hidden');
             document.getElementById('classicForm').classList.toggle('hidden');
             document.getElementById('formModeText').textContent = formMode === 'classic' ? 'Switch to Wizard' : 'Switch to Classic';
+        }
+
+        // Toggle partner location for wizard form
+        function toggleDateLocation() {
+            const checkbox = document.getElementById('sameLocationCheck');
+            const container = document.getElementById('dateLocationContainer');
+            const input = document.getElementById('dateLocationInput');
+            
+            if (checkbox.checked) {
+                container.classList.add('hidden');
+                dateData.date_location = null;
+                input.value = '';
+            } else {
+                container.classList.remove('hidden');
+                input.focus();
+            }
+        }
+
+        // Toggle partner location for classic form
+        function toggleQuickDateLocation() {
+            const checkbox = document.getElementById('quickSameLocationCheck');
+            const container = document.getElementById('quickDateLocationContainer');
+            const input = document.getElementById('quickDateLocationInput');
+            
+            if (checkbox.checked) {
+                container.classList.add('hidden');
+                dateData.date_location = null;
+                input.value = '';
+            } else {
+                container.classList.remove('hidden');
+                input.focus();
+            }
         }
 
         // Wizard navigation
@@ -710,6 +770,15 @@
             // Collect data from wizard
             if (document.getElementById('locationInput')) {
                 dateData.location = document.getElementById('locationInput').value;
+                
+                // Collect partner location for wizard
+                const sameLocationCheck = document.getElementById('sameLocationCheck');
+                const dateLocationInput = document.getElementById('dateLocationInput');
+                if (!sameLocationCheck.checked && dateLocationInput.value.trim()) {
+                    dateData.date_location = dateLocationInput.value.trim();
+                } else {
+                    dateData.date_location = null;
+                }
             }
             if (document.getElementById('preferences')) {
                 dateData.preferences = document.getElementById('preferences').value;
@@ -719,6 +788,15 @@
             if (formMode === 'classic') {
                 dateData.location = document.getElementById('quickLocation').value || 'Virginia Beach';
                 dateData.budget = parseInt(document.getElementById('quickBudget').value) || 100;
+                
+                // Collect partner location for classic form
+                const quickSameLocationCheck = document.getElementById('quickSameLocationCheck');
+                const quickDateLocationInput = document.getElementById('quickDateLocationInput');
+                if (!quickSameLocationCheck.checked && quickDateLocationInput.value.trim()) {
+                    dateData.date_location = quickDateLocationInput.value.trim();
+                } else {
+                    dateData.date_location = null;
+                }
             }
 
             // Show loading state
