@@ -84,6 +84,36 @@ MAJOR_DESTINATIONS = {
 }
 
 # Geographic calculation utilities
+def fallback_geocode(location_string: str) -> Optional[tuple]:
+    """
+    Fallback geocoding when Google Maps API is not available or fails
+    Returns (lat, lng) tuple if found, None otherwise
+    """
+    if not location_string:
+        return None
+    
+    # Normalize the input
+    location_lower = location_string.lower().strip()
+    
+    # Check major destinations
+    for city_name, coords in MAJOR_DESTINATIONS.items():
+        if location_lower in city_name.lower():
+            return coords
+    
+    # Check for specific country/city combinations
+    if "tokyo" in location_lower or ("japan" in location_lower and "tokyo" in location_lower):
+        return MAJOR_DESTINATIONS.get("Tokyo, Japan")
+    elif "new york" in location_lower or "nyc" in location_lower:
+        return MAJOR_DESTINATIONS.get("New York, NY")
+    elif "los angeles" in location_lower or "la" in location_lower:
+        return MAJOR_DESTINATIONS.get("Los Angeles, CA")
+    elif "london" in location_lower or ("uk" in location_lower and "london" in location_lower):
+        return MAJOR_DESTINATIONS.get("London, UK")
+    elif "paris" in location_lower or ("france" in location_lower and "paris" in location_lower):
+        return MAJOR_DESTINATIONS.get("Paris, France")
+    
+    return None
+
 def haversine_distance(coord1: tuple, coord2: tuple) -> float:
     """
     Calculate the great circle distance between two points on Earth in kilometers
@@ -512,6 +542,7 @@ async def generate_date(request: DateRequest):
     
     # Parse primary location to get coordinates
     lat1, lng1 = 35.0526, -78.8783  # Default to Fayetteville, NC
+    geocoded = False
     
     if gmaps and request.location:
         try:
@@ -519,8 +550,16 @@ async def generate_date(request: DateRequest):
             if geocode_result:
                 location = geocode_result[0]["geometry"]["location"]
                 lat1, lng1 = location["lat"], location["lng"]
+                geocoded = True
         except Exception as e:
             print(f"Geocoding error for location 1: {e}")
+    
+    # Use fallback geocoding if Google Maps failed
+    if not geocoded and request.location:
+        fallback_coords = fallback_geocode(request.location)
+        if fallback_coords:
+            lat1, lng1 = fallback_coords
+            print(f"Using fallback geocoding for {request.location}: ({lat1}, {lng1})")
     
     # Handle two-location dating feature
     search_center = (lat1, lng1)
@@ -529,9 +568,15 @@ async def generate_date(request: DateRequest):
     distance_info = None
     destination_suggestions = None
     
+    print(f"DEBUG: Primary location: {request.location} -> ({lat1}, {lng1})")
+    print(f"DEBUG: Date location: {request.date_location}")
+    print(f"DEBUG: Google Maps configured: {gmaps is not None}")
+    
     if request.date_location and request.date_location.strip():
+        print(f"DEBUG: Processing two-location mode")
         # Parse date's location
         lat2, lng2 = lat1, lng1  # Default to same location
+        geocoded = False
         
         if gmaps:
             try:
@@ -539,51 +584,60 @@ async def generate_date(request: DateRequest):
                 if geocode_result:
                     location = geocode_result[0]["geometry"]["location"]
                     lat2, lng2 = location["lat"], location["lng"]
-                    
-                    # Calculate distance first
-                    distance_km = haversine_distance((lat1, lng1), (lat2, lng2))
-                    
-                    if distance_km > 1000:  # ~620 miles - too far for midpoint
-                        # Suggest destination cities instead
-                        destination_suggestions = find_destination_cities((lat1, lng1), (lat2, lng2), num_suggestions=5)
-                        return {
-                            "success": True,
-                            "two_location": True,
-                            "long_distance": True,
-                            "distance_km": round(distance_km, 1),
-                            "destination_suggestions": destination_suggestions,
-                            "message": f"The distance ({distance_km:.0f} km) is too large for midpoint dating. Here are some great destination cities for your date!"
-                        }
-                    else:
-                        # Calculate optimal midpoint and search radius
-                        try:
-                            search_center, search_radius, distance_km = calculate_midpoint_and_radius(
-                                (lat1, lng1), (lat2, lng2)
-                            )
-                            is_two_location = True
-                            
-                            print(f"Two-location mode: Person 1 at ({lat1:.4f}, {lng1:.4f}), Person 2 at ({lat2:.4f}, {lng2:.4f})")
-                            print(f"Search center: ({search_center[0]:.4f}, {search_center[1]:.4f}), radius: {search_radius}m")
-                            
-                            # Calculate travel distances
-                            midpoint_to_location1 = haversine_distance(search_center, (lat1, lng1))
-                            midpoint_to_location2 = haversine_distance(search_center, (lat2, lng2))
-                            
-                            distance_info = {
-                                "total_distance_km": round(distance_km, 1),
-                                "person1_travel_km": round(midpoint_to_location1, 1),
-                                "person2_travel_km": round(midpoint_to_location2, 1),
-                                "fairness_score": round(100 - (abs(midpoint_to_location1 - midpoint_to_location2) / max(midpoint_to_location1, midpoint_to_location2)) * 100, 1),
-                                "search_radius_km": round(search_radius / 1000, 1)
-                            }
-                            
-                        except ValueError as e:
-                            print(f"Distance validation failed: {e}")
-                            # Fall back to single location
-                            is_two_location = False
-                    
+                    geocoded = True
             except Exception as e:
                 print(f"Geocoding error for date location: {e}")
+        
+        # Use fallback geocoding if Google Maps failed
+        if not geocoded:
+            fallback_coords = fallback_geocode(request.date_location)
+            if fallback_coords:
+                lat2, lng2 = fallback_coords
+                print(f"Using fallback geocoding for {request.date_location}: ({lat2}, {lng2})")
+                geocoded = True
+        
+        if geocoded:
+            # Calculate distance first
+            distance_km = haversine_distance((lat1, lng1), (lat2, lng2))
+            
+            if distance_km > 1000:  # ~620 miles - too far for midpoint
+                # Suggest destination cities instead
+                destination_suggestions = find_destination_cities((lat1, lng1), (lat2, lng2), num_suggestions=5)
+                return {
+                    "success": True,
+                    "two_location": True,
+                    "long_distance": True,
+                    "distance_km": round(distance_km, 1),
+                    "destination_suggestions": destination_suggestions,
+                    "message": f"The distance ({distance_km:.0f} km) is too large for midpoint dating. Here are some great destination cities for your date!"
+                }
+            else:
+                # Calculate optimal midpoint and search radius
+                try:
+                    search_center, search_radius, distance_km = calculate_midpoint_and_radius(
+                        (lat1, lng1), (lat2, lng2)
+                    )
+                    is_two_location = True
+                    
+                    print(f"Two-location mode: Person 1 at ({lat1:.4f}, {lng1:.4f}), Person 2 at ({lat2:.4f}, {lng2:.4f})")
+                    print(f"Search center: ({search_center[0]:.4f}, {search_center[1]:.4f}), radius: {search_radius}m")
+                    
+                    # Calculate travel distances
+                    midpoint_to_location1 = haversine_distance(search_center, (lat1, lng1))
+                    midpoint_to_location2 = haversine_distance(search_center, (lat2, lng2))
+                    
+                    distance_info = {
+                        "total_distance_km": round(distance_km, 1),
+                        "person1_travel_km": round(midpoint_to_location1, 1),
+                        "person2_travel_km": round(midpoint_to_location2, 1),
+                        "fairness_score": round(100 - (abs(midpoint_to_location1 - midpoint_to_location2) / max(midpoint_to_location1, midpoint_to_location2)) * 100, 1),
+                        "search_radius_km": round(search_radius / 1000, 1)
+                    }
+                    
+                except ValueError as e:
+                    print(f"Distance validation failed: {e}")
+                    # Fall back to single location
+                    is_two_location = False
     
     # Generate activities based on preferences
     activities = generate_activities(
@@ -1104,7 +1158,7 @@ def generate_open_graph_tags(plan: Dict, share_id: str) -> str:
         description += f" Vibes: {', '.join(plan['vibes'])}."
     
     # Current domain (should be configurable in production)
-    domain = "localhost:1090"  # This should be read from environment or config
+    domain = f"localhost:{os.getenv('PORT', '7860')}"  # Read from environment
     share_url = f"http://{domain}/shared/{share_id}"
     
     # Generate activity summary for rich preview
@@ -1228,7 +1282,8 @@ if __name__ == "__main__":
     else:
         print("✅ Google Maps API configured")
     
-    print(f"🚀 Starting server at http://localhost:1090")
+    PORT = int(os.getenv("PORT", "7860"))
+    print(f"🚀 Starting server at http://localhost:{PORT}")
     print(f"📁 Serving static files from {STATIC_DIR}")
     
-    uvicorn.run(app, host="0.0.0.0", port=1090)
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
