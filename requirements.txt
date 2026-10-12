@@ -1,4 +1,4 @@
-gradio
+gradio==5.50.0
 openai
 python-dotenv
 requests

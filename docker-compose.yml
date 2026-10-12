@@ -11,11 +11,10 @@ services:
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
-      - PORT=${PORT:-7860}
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
-        max-file: "3" 
+        max-file: "3"
