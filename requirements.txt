@@ -1,6 +1,6 @@
 gradio==5.50.0
 openai
-python-dotenv
+python-dotenv>=1.2.2
 requests
 googlemaps
 folium
